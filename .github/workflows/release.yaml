@@ -1,0 +1,68 @@
+name: Release
+
+# Tag-triggered: `git tag v0.1.0 && git push origin v0.1.0` builds the
+# firmware and attaches to a GitHub Release:
+#   switchboard-viewport-<tag>.bin           one image to flash over USB
+#   switchboard-e1002-app-<tag>.bin (+.sha256)  the app image Switchboard
+#                                            Server installs over the air
+#                                            (Settings -> Updates: add this
+#                                            repository's release)
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git describe sees the tag
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO + esptool
+        run: pip install -U platformio esptool
+
+      - name: Build (e1002)
+        run: pio run -e e1002
+
+      # One flat image from offset 0: bootloader, partition table, the OTA
+      # selector and the app, at the offsets PlatformIO flashes them to.
+      - name: Merge into one flashable image
+        run: |
+          set -euo pipefail
+          B=.pio/build/e1002
+          BOOT_APP0=$(find "$HOME/.platformio/packages" -name boot_app0.bin | head -1)
+          OUT="switchboard-viewport-${{ github.ref_name }}.bin"
+          python -m esptool --chip esp32s3 merge_bin -o "$OUT" \
+            --flash_mode keep --flash_freq keep --flash_size keep \
+            0x0000 "$B/bootloader.bin" \
+            0x8000 "$B/partitions.bin" \
+            0xe000 "$BOOT_APP0" \
+            0x10000 "$B/firmware.bin"
+          echo "MERGED_BIN=$OUT" >> "$GITHUB_ENV"
+
+      # The app image alone, named for its board, and its SHA-256: what
+      # Switchboard Server checks before it offers it to a display.
+      - name: App image for over-the-air updates
+        run: |
+          set -euo pipefail
+          APP="switchboard-e1002-app-${{ github.ref_name }}.bin"
+          cp .pio/build/e1002/firmware.bin "$APP"
+          sha256sum "$APP" > "$APP.sha256"
+          grep -a -q "SWITCHBOARD_FW:e1002:${{ github.ref_name }}" "$APP"
+          echo "APP_BIN=$APP" >> "$GITHUB_ENV"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.MERGED_BIN }}
+            ${{ env.APP_BIN }}
+            ${{ env.APP_BIN }}.sha256
+          generate_release_notes: true

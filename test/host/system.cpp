@@ -40,6 +40,11 @@ int main(int argc, char** argv) {
   }
   {
     Canvas c;
+    sys::error(c, "vx_server_off", "Not connected to Switchboard", "Can't reach the server at 192.168.1.20:45678", "Sat 03 Oct 2026  11:04");
+    save(c, "error-server");
+  }
+  {
+    Canvas c;
     sys::charge(c, 2);
     save(c, "charge");
   }

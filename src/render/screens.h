@@ -22,6 +22,11 @@ struct Ctx {
   char time[8] = "--:--";  // the footer's clock: when this was drawn
   int battPct = -1;        // the device's own battery, -1 = unknown
   bool quiet = false;      // quiet hours: the footer's bed-and-clock
+  // The carousel: each enabled screen's icon, in order, and the one showing
+  // (underlined in the footer). Fewer than two: none drawn.
+  const char* marks[12] = {};
+  int markCount = 0;
+  int current = 0;
 };
 
 // A screen as /api/viewports/me/state?screen=<id> returns it (its `data`).

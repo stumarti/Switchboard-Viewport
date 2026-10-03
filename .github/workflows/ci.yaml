@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The firmware for the reTerminal E1002.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git describe (tools/gen_version.py)
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Build (e1002)
+        run: pio run -e e1002
+
+      - name: The image says what it is
+        run: grep -a -q "SWITCHBOARD_FW:e1002:" .pio/build/e1002/firmware.bin
+
+  # The logic and the drawing, built with g++ and run here; every screen in
+  # test/fixtures rendered to an image (kept as an artifact to look at).
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pillow (PNG output)
+        run: pip install pillow
+
+      - name: Host tests
+        run: ./test/host/run.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: test/host/out/

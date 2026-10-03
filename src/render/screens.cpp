@@ -1259,7 +1259,23 @@ void footer(Gfx& g, const Ctx& ctx) {
   draw::text(g, timeX, FOOTER_Y, ctx.time);
   const int refX = timeX - 16 - 4;
   draw::icon(g, icons::slot("vf_refresh"), refX, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
-  if (ctx.quiet) draw::icon(g, icons::slot("vf_quiet"), refX - 16 - 4, FOOTER_TINY_Y, GxEPD_BLUE, Mode::Opaque);
+  int x = refX;
+  if (ctx.quiet) {
+    x -= 16 + 4;
+    draw::icon(g, icons::slot("vf_quiet"), x, FOOTER_TINY_Y, GxEPD_BLUE, Mode::Opaque);
+  }
+  // The carousel: every screen's icon, the one showing underlined.
+  if (ctx.markCount > 1) {
+    x -= 8;
+    const int n = ctx.markCount;
+    const int step = 16 + 6;
+    const int x0 = x - n * step + 6;
+    for (int i = 0; i < n; ++i) {
+      const int ix = x0 + i * step;
+      draw::icon(g, icons::named(ctx.marks[i] && *ctx.marks[i] ? ctx.marks[i] : "view-dashboard-outline", 16), ix, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
+      if (i == ctx.current) g.fillRect(ix, FOOTER_TINY_Y + 18, 16, 2, GxEPD_BLACK);
+    }
+  }
 }
 
 void drawScreen(Gfx& g, JsonObjectConst screen, const Ctx& ctx) {

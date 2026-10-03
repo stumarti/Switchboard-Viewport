@@ -20,7 +20,28 @@ static std::string slurp(const char* path) {
   return s;
 }
 
+// The device's cache of fetched icons, on the host: test/fixtures/icons
+// (tools/gen_icons.js --fixtures), in /api/icons/mdi's format.
+#include <map>
+static std::map<std::string, std::string> g_icons;
+static bool fixtureIcon(const char* name, int size, draw::Icon& out) {
+  const std::string key = std::string(name) + "_" + std::to_string(size);
+  auto it = g_icons.find(key);
+  if (it == g_icons.end()) {
+    std::string b = slurp(("test/fixtures/icons/" + key + ".icon").c_str());
+    if (b.size() < 6) return false;
+    it = g_icons.emplace(key, b).first;
+  }
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(it->second.data());
+  out.w = p[0] | (p[1] << 8);
+  out.h = p[2] | (p[3] << 8);
+  out.bits = p + 6;
+  out.fourBit = false;
+  return true;
+}
+
 int main(int argc, char** argv) {
+  icons::setLookups(nullptr, fixtureIcon);
   if (argc < 3) {
     fprintf(stderr, "usage: render <out-dir> fixture.json...\n");
     return 2;
@@ -37,6 +58,11 @@ int main(int argc, char** argv) {
     snprintf(ctx.time, sizeof(ctx.time), "11:04");
     ctx.battPct = 76;
     ctx.quiet = doc["quiet"] | false;
+    // The kitchen panel's carousel, on its first screen.
+    static const char* MARKS[] = {"view-dashboard-outline", "radiator", "shield-home-outline"};
+    for (int k = 0; k < 3; ++k) ctx.marks[k] = MARKS[k];
+    ctx.markCount = 3;
+    ctx.current = doc["current"] | 0;
     JsonObjectConst screen = doc["data"];
 
     // The collecting pass: which icons would have to be fetched.
