@@ -413,8 +413,17 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     const int y = HP_ROW_TOP + 10 + i * HP_ROW_H;
     if (y + 40 > draw::PANEL_H) break;
     const bool active = z["active"] | false;
-    draw::face(g, draw::BOLD24, active ? GxEPD_RED : GxEPD_BLACK);
-    draw::text(g, RPANEL_X, y + 14, str(z["name"]));
+    const uint16_t nameCol = active ? GxEPD_RED : GxEPD_BLACK;
+    // The zone's icon, if it has one: 24 px beside the name, centred on its
+    // capitals (15 px tall above y + 14), in the name's colour.
+    int nameX = RPANEL_X;
+    const char* zoneIcon = str(z["icon"]);
+    if (*zoneIcon) {
+      draw::icon(g, icons::named(zoneIcon, 24), RPANEL_X, y - 5, nameCol, Mode::Opaque);
+      nameX += 30;
+    }
+    draw::face(g, draw::BOLD24, nameCol);
+    draw::text(g, nameX, y + 14, str(z["name"]));
     char temps[40] = "";
     char v[16];
     if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%sC", draw::fixed(v, sizeof(v), z["current"].as<float>(), 1));
