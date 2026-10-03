@@ -703,7 +703,8 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
 }
 
 // Solar against its forecast on top; below, use stacked by source (grid,
-// battery, solar) with export under the line.
+// battery, solar) above the line, and charging the battery then export to
+// the grid under it.
 int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
   const int x0 = b.x + 8, W = b.w - 16;
   JsonArrayConst labels = d["labels"];
@@ -768,7 +769,7 @@ int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
   const int up = static_cast<int>((BH - 4) * (upMax / (upMax + downMax)));
   const int axisY = y + 2 + up;
   const float scale = up / upMax;
-  JsonArrayConst grid = u["fromGrid"], batt = u["fromBattery"], solar = u["fromSolar"], exp_ = u["export"];
+  JsonArrayConst grid = u["fromGrid"], batt = u["fromBattery"], solar = u["fromSolar"], exp_ = u["export"], charge = u["toBattery"];
   for (int k = 0; k < n; ++k) {
     int yTop = axisY;
     const int bx = x0 + static_cast<int>(k * bw) + 1;
@@ -785,8 +786,20 @@ int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
       yTop -= h;
       g.fillRect(bx, yTop, bwi, h, col(c[p.key], p.fallback));
     }
-    const float e = exp_[k] | 0.0f;
-    if (e > 0) g.fillRect(bx, axisY, bwi, static_cast<int>(e * scale), col(c["gridExport"], 4));
+    // Below the line: into the battery next to it, then out to the grid.
+    int yBelow = axisY;
+    const struct {
+      JsonArrayConst a;
+      const char* key;
+      int fallback;
+    } down[] = {{charge, "toBattery", 5}, {exp_, "gridExport", 4}};
+    for (const auto& p : down) {
+      const float v = p.a[k] | 0.0f;
+      if (v <= 0) continue;
+      const int h = static_cast<int>(v * scale);
+      g.fillRect(bx, yBelow, bwi, h, col(c[p.key], p.fallback));
+      yBelow += h;
+    }
   }
   g.drawFastHLine(x0, axisY, W, GxEPD_BLACK);
   return y + BH + 4 - b.y;
