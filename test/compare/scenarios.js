@@ -97,6 +97,20 @@ const SCENARIOS = {
     t.set('sensor.battery_power', '400');
     t.set('sensor.battery_soc', '8');
   },
+  'power-at-idle-edge': (h, t) => t.set('sensor.battery_power', '-100'),
+  'power-just-charging': (h, t) => {
+    t.set('sensor.battery_power', '-101');
+    t.set('sensor.battery_charge_eta', new Date(Date.parse(h.now) + 95 * 60000).toISOString());
+  },
+  'power-just-discharging': (h, t) => {
+    t.set('sensor.battery_power', '101');
+    t.set('sensor.battery_discharge_eta', 'unknown');
+  },
+  'discharge-eta-offset': (h, t) => {
+    t.set('sensor.battery_power', '2400');
+    t.set('sensor.battery_soc', '100');
+    t.set('sensor.battery_discharge_eta', '2026-10-04T03:05:00+00:00');
+  },
   'battery-eta-tomorrow': (h, t) => t.set('sensor.battery_charge_eta', new Date(Date.parse(h.now) + 20 * 3600000).toISOString()),
   'battery-unavailable': (h, t) => {
     t.set('sensor.battery_soc', 'unavailable');
