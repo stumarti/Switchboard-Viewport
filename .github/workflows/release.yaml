@@ -2,7 +2,9 @@ name: Release
 
 # Tag-triggered: `git tag v0.1.0 && git push origin v0.1.0` builds the
 # firmware and attaches to a GitHub Release:
-#   switchboard-viewport-<tag>.bin           one image to flash over USB
+#   switchboard-viewport-<tag>.bin           one image to flash over USB (the
+#                                            Switchboard web flasher serves the
+#                                            latest)
 #   switchboard-e1002-app-<tag>.bin (+.sha256)  the app image Switchboard
 #                                            Server installs over the air
 #                                            (Settings -> Updates: add this
@@ -17,6 +19,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # Optional: see "Update the web flasher" below.
+      FLASHER_TOKEN: ${{ secrets.SWITCHBOARD_FLASHER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,3 +71,17 @@ jobs:
             ${{ env.APP_BIN }}
             ${{ env.APP_BIN }}.sha256
           generate_release_notes: true
+
+      # Tells the Switchboard repository's web flasher to take this release
+      # now (its "Viewport web flasher" workflow; without this it picks it up
+      # within six hours). Needs a SWITCHBOARD_FLASHER_TOKEN secret here: a
+      # fine-grained token for stumarti/Switchboard with Contents: read and
+      # write. Skipped if there isn't one.
+      - name: Update the web flasher
+        if: env.FLASHER_TOKEN != ''
+        run: |
+          curl -sSf -X POST \
+            -H "Authorization: Bearer $FLASHER_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/stumarti/Switchboard/dispatches \
+            -d '{"event_type":"viewport-release"}'
