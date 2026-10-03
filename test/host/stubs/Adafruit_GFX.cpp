@@ -41,6 +41,40 @@ void Adafruit_GFX::fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t c) {
       if (x * x + y * y <= r * r) drawPixel(x0 + x, y0 + y, c);
 }
 
+// As Adafruit GFX draws them.
+void Adafruit_GFX::fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t c) {
+  const int16_t maxR = ((w < h) ? w : h) / 2;
+  if (r > maxR) r = maxR;
+  fillRect(x + r, y, w - 2 * r, h, c);
+  fillCircleHelper(x + w - r - 1, y + r, r, 1, h - 2 * r - 1, c);
+  fillCircleHelper(x + r, y + r, r, 2, h - 2 * r - 1, c);
+}
+
+void Adafruit_GFX::fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t corners, int16_t delta, uint16_t c) {
+  int16_t f = 1 - r, ddF_x = 1, ddF_y = -2 * r, x = 0, y = r, px = x, py = y;
+  delta++;
+  while (x < y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f += ddF_x;
+    if (x < (y + 1)) {
+      if (corners & 1) drawFastVLine(x0 + x, y0 - y, 2 * y + delta, c);
+      if (corners & 2) drawFastVLine(x0 - x, y0 - y, 2 * y + delta, c);
+    }
+    if (y != py) {
+      if (corners & 1) drawFastVLine(x0 + py, y0 - px, 2 * px + delta, c);
+      if (corners & 2) drawFastVLine(x0 - py, y0 - px, 2 * px + delta, c);
+      py = y;
+    }
+    px = x;
+  }
+}
+
 void Adafruit_GFX::drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint8_t sx, uint8_t sy) {
   c -= gfxFont->first;
   const GFXglyph* glyph = &gfxFont->glyph[c];

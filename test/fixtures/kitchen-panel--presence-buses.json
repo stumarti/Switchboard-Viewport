@@ -117,16 +117,18 @@
       "routes": [
        {
         "name": "C3 Maynooth",
-        "stop": "Stop 1234",
+        "route": "C3",
+        "destination": "Maynooth",
+        "stop": "",
         "icon": "bus",
         "color": 4,
         "departures": [
          {
-          "time": "22:00",
-          "minutes": 11,
-          "urgent": false,
-          "color": 4,
-          "text": "11 min",
+          "time": "21:51",
+          "minutes": 1,
+          "urgent": true,
+          "color": 2,
+          "text": "1 min",
           "live": true
          },
          {
@@ -140,26 +142,46 @@
         ]
        },
        {
-        "name": "C3 later",
+        "name": "66 Leixlip",
+        "route": "66",
+        "destination": "Leixlip",
         "stop": "",
         "icon": "bus",
-        "color": 5,
+        "color": 4,
         "departures": [
          {
-          "time": "22:00",
-          "minutes": 11,
+          "time": "21:58",
+          "minutes": 8,
           "urgent": false,
-          "color": 5,
-          "text": "11 min",
+          "color": 4,
+          "text": "8 min",
           "live": true
          },
          {
-          "time": "22:25",
-          "minutes": 36,
+          "time": "22:38",
+          "minutes": 48,
           "urgent": false,
           "color": 1,
-          "text": "36 min",
+          "text": "48 min",
           "live": false
+         }
+        ]
+       },
+       {
+        "name": "C4 Ringsend",
+        "route": "C4",
+        "destination": "Ringsend",
+        "stop": "",
+        "icon": "bus",
+        "color": 4,
+        "departures": [
+         {
+          "time": "22:07",
+          "minutes": 18,
+          "urgent": false,
+          "color": 4,
+          "text": "18 min",
+          "live": true
          }
         ]
        }

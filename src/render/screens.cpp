@@ -985,31 +985,60 @@ int media(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y;
 }
 
+// Bus and train stops, a row each, as a stop board has them: the route in a
+// badge of its colour (or its icon, when there's no route number), where
+// it's going large and the stop under it; on the right the next departures,
+// the minutes large in their colour (red when due) and the clock time under.
 int transport(Gfx& g, JsonObjectConst d, Box b) {
+  const int ROW_H = 58, COL_W = 92, BADGE_H = 32;
   int y = b.y;
-  char buf[24];
+  char buf[64], fitted[96];
+  int16_t bx, by;
+  uint16_t tw, th;
   for (JsonObjectConst t : d["routes"].as<JsonArrayConst>()) {
+    if (y + ROW_H > draw::PANEL_H - 24) break;
     const uint16_t c = col(t["color"], 4);
-    draw::icon(g, icons::named(str(t["icon"], "bus"), 24), b.x + 8, y + 6, c, Mode::Ink);
-    int rx = b.x + b.w - 8;
-    JsonArrayConst deps = t["departures"];
-    // The route and stop stop short of the departures (76 px each).
-    const int nameW = rx - static_cast<int>(deps.size()) * 76 - (b.x + 40) - 4;
-    char fitted[96];
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 20, draw::fit(g, fitted, sizeof(fitted), str(t["name"]), nameW));
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 40, draw::fit(g, fitted, sizeof(fitted), str(t["stop"]), nameW));
-    for (int i = static_cast<int>(deps.size()) - 1; i >= 0; --i) {
-      JsonObjectConst x = deps[i];
-      draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::textRight(g, str(x["time"]), rx, y + 18);
-      draw::face(g, draw::BOLD18, col(x["color"], 1));
-      snprintf(buf, sizeof(buf), "%s", str(x["text"]));
-      draw::textRight(g, buf, rx, y + 40);
-      rx -= 76;
+    int x = b.x + 8;
+    const char* route = str(t["route"]);
+    if (*route) {
+      draw::face(g, draw::BOLD24, GxEPD_WHITE);
+      g.getTextBounds(route, 0, 0, &bx, &by, &tw, &th);
+      const int w = tw + 16 > 48 ? tw + 16 : 48;
+      g.fillRoundRect(x, y + 6, w, BADGE_H, 4, c);
+      draw::textCentered(g, route, x, w, y + 6 + BADGE_H / 2 + 8);
+      x += w + 12;
+    } else {
+      draw::icon(g, icons::named(str(t["icon"], "bus"), 24), x + 12, y + 10, c, Mode::Ink);
+      x += 48 + 12;
     }
-    y += 50;
+    JsonArrayConst deps = t["departures"];
+    const int n = deps.size() > 2 ? 2 : static_cast<int>(deps.size());
+    const int textW = b.x + b.w - 8 - n * COL_W - x - 6;
+    const char* dest = str(t["destination"], str(t["name"]));
+    draw::face(g, draw::BOLD24, GxEPD_BLACK);
+    draw::text(g, x, y + 28, draw::fit(g, fitted, sizeof(fitted), dest, textW));
+    if (*str(t["stop"])) {
+      draw::face(g, draw::REG18, GxEPD_BLACK);
+      draw::text(g, x, y + 50, draw::fit(g, fitted, sizeof(fitted), str(t["stop"]), textW));
+    }
+    // The soonest at the right edge, the one after to its left.
+    int rx = b.x + b.w - 8;
+    for (int k = 0; k < n; ++k) {
+      JsonObjectConst x2 = deps[k];
+      const int colRight = rx - (n - 1 - k) * COL_W;
+      draw::face(g, draw::BOLD24, col(x2["color"], 1));
+      draw::textRight(g, draw::fit(g, buf, sizeof(buf), str(x2["text"]), COL_W - 8), colRight, y + 28);
+      if (*str(x2["time"])) {
+        draw::face(g, draw::REG18, GxEPD_BLACK);
+        draw::textRight(g, str(x2["time"]), colRight, y + 50);
+      }
+    }
+    if (n == 0) {
+      draw::face(g, draw::REG18, GxEPD_BLACK);
+      draw::textRight(g, "No departures", rx, y + 28);
+    }
+    y += ROW_H;
+    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
   }
   return y - b.y;
 }
