@@ -151,17 +151,21 @@ String pageUrl() { return server::base() + "/#/viewports/" + server::urlEncode(w
 
 // Paired (a token kept), or a screen saying it's waiting.
 void ensurePaired() {
+  LOGF("[boot] check pairing: token=%s\n", server::token().length() ? "present" : "missing");
   if (server::token().length()) return;
   String status;
   const server::Pairing p = server::pair(status);
+  LOGF("[boot] pairing result=%d status=%s\n", static_cast<int>(p), status.c_str());
   if (p == server::Pairing::Unreachable) serverDown();
   if (p != server::Pairing::Approved) waitForApproval(status);
 }
 
-// The bundle: from the server (304 = the cached one still holds).
+// The bundle: from the server (304 = the cached one still holds). If the cache
+// is missing or unreadable, retry once without the ETag so it can repull.
 bool fetchBundle(JsonDocument& bundle) {
   const String etag = store::get("bundleEtag", "");
-  server::Response r = server::get("/api/viewports/me/bundle", etag.length() && store::exists("/bundle.json") ? etag.c_str() : nullptr);
+  const bool hasCache = etag.length() && store::exists("/bundle.json");
+  server::Response r = server::get("/api/viewports/me/bundle", hasCache ? etag.c_str() : nullptr);
   if (r.code == 401 || r.code == 403 || r.code == 404) {
     // The server doesn't know this token (re-installed, or the display was
     // removed): register again.
@@ -169,16 +173,45 @@ bool fetchBundle(JsonDocument& bundle) {
     ensurePaired();
     r = server::get("/api/viewports/me/bundle");
   }
+
   String text;
-  if (r.code == 304) text = store::readText("/bundle.json");
-  else if (r.code == 200) {
+  if (r.code == 304) {
+    text = store::readText("/bundle.json");
+    if (text.length() == 0) {
+      LOGF("[bundle] 304 cache missing/empty, retrying without ETag\n");
+      r = server::get("/api/viewports/me/bundle");
+      if (r.code == 200) {
+        text = r.body;
+        store::writeText("/bundle.json", text);
+        store::put("bundleEtag", r.etag);
+      }
+    }
+  }
+  if (r.code == 200) {
     text = r.body;
     store::writeText("/bundle.json", text);
     store::put("bundleEtag", r.etag);
-  } else {
+  }
+  if (r.code != 200 && r.code != 304) return false;
+  if (text.length() == 0) {
+    LOGF("[bundle] no bundle body from server or cache\n");
     return false;
   }
-  return !deserializeJson(bundle, text);
+  if (deserializeJson(bundle, text)) {
+    LOGF("[bundle] failed to parse bundle JSON; retrying without ETag\n");
+    if (etag.length()) {
+      r = server::get("/api/viewports/me/bundle");
+      if (r.code == 200) {
+        text = r.body;
+        store::writeText("/bundle.json", text);
+        store::put("bundleEtag", r.etag);
+        if (!deserializeJson(bundle, text)) return true;
+      }
+    }
+    return false;
+  }
+  LOGF("[bundle] loaded bundle OK from %s\n", r.code == 304 ? "cache" : "server");
+  return true;
 }
 
 [[noreturn]] void showInfo() {
