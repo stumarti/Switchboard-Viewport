@@ -95,7 +95,7 @@ void remember(Panel p, const char* key) {
 
 bool alreadyShowing(Panel p, const char* key) { return rtcPanel == p && !strcmp(rtcPanelKey, key ? key : ""); }
 
-[[noreturn]] void sleep(uint32_t sec) {
+[[noreturn]] void sleepNow(uint32_t sec) {
   wifi::off();
   rtcSleep = sec;
   hw::sleepFor(sec);
@@ -110,7 +110,7 @@ bool alreadyShowing(Panel p, const char* key) { return rtcPanel == p && !strcmp(
     display::show([&](draw::Gfx& g) { sys::error(g, icon, title, detail, when); });
     remember(Panel::Error, title);
   }
-  sleep(sleepSec);
+  sleepNow(sleepSec);
 }
 
 [[noreturn]] void serverDown() {
@@ -127,7 +127,7 @@ String pageUrl() { return server::base() + "/#/viewports/" + server::urlEncode(w
     display::show([&](draw::Gfx& g) { sys::pairing(g, {name.c_str(), base.c_str(), page.c_str(), status.c_str()}); });
     remember(Panel::Pairing, status.c_str());
   }
-  sleep(SLEEP_PENDING_SEC);
+  sleepNow(SLEEP_PENDING_SEC);
 }
 
 // Paired (a token kept), or a screen saying it's waiting.
@@ -178,7 +178,7 @@ bool fetchBundle(JsonDocument& bundle) {
     sys::info(g, {refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()});
   });
   remember(Panel::Info, "");
-  sleep(rtcSleep ? rtcSleep : SLEEP_DEFAULT_SEC);
+  sleepNow(rtcSleep ? rtcSleep : SLEEP_DEFAULT_SEC);
 }
 
 carousel::Wake carouselWake(hw::Wake w) {
@@ -230,14 +230,14 @@ void setup() {
       display::show([](draw::Gfx& g) { sys::charge(g, g_batt); });
       remember(Panel::Charge, "");
     }
-    sleep(SLEEP_DEFAULT_SEC);
+    sleepNow(SLEEP_DEFAULT_SEC);
   }
 
   // ---- Held buttons that need no network ----
   if (wake == hw::Wake::ClearHold) {
     display::clear();
     remember(Panel::Clear, "");
-    sleep(rtcSleep ? rtcSleep : SLEEP_DEFAULT_SEC);
+    sleepNow(rtcSleep ? rtcSleep : SLEEP_DEFAULT_SEC);
   }
   if (wake == hw::Wake::InfoHold) showInfo();
 
@@ -246,7 +246,7 @@ void setup() {
     remember(Panel::Setup, "");
     wifi::setup(store::networks().empty() ? "No Wi-Fi saved yet" : "");
     // Timed out (or cancelled): with nothing saved, wait for a button.
-    if (store::networks().empty()) sleep(SLEEP_MAX_SEC);
+    if (store::networks().empty()) sleepNow(SLEEP_MAX_SEC);
   }
   {
     float t = NAN, h = NAN;
@@ -258,7 +258,7 @@ void setup() {
     if (!store::getInt("joined", 0)) {
       remember(Panel::Setup, "");
       wifi::setup("Couldn't join the saved Wi-Fi");
-      sleep(SLEEP_MAX_SEC);
+      sleepNow(SLEEP_MAX_SEC);
     }
     fail("vx_wifi_off", "No WiFi connection", "Check network or router");
   }
@@ -295,7 +295,7 @@ void setup() {
       display::show([&](draw::Gfx& g) { sys::notSetUp(g, page.c_str()); });
       remember(Panel::NotSetUp, "");
     }
-    sleep(SLEEP_DEFAULT_SEC);
+    sleepNow(SLEEP_DEFAULT_SEC);
   }
 
   theme::sync();
@@ -342,11 +342,11 @@ void setup() {
     // still needs a redraw, from the copy kept.
     if (quiet == rtcQuiet) {
       LOGF("Screen %s unchanged\n", screenId.c_str());
-      sleep(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+      sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
     }
     if (deserializeJson(state, store::readText(cache.c_str()))) {
       rtcEtag[0] = 0;  // no copy: fetch it whole next time
-      sleep(SLEEP_MIN_SEC);
+      sleepNow(SLEEP_MIN_SEC);
     }
   } else if (r.code == 409 || r.code == 502) {
     JsonDocument err;
@@ -356,7 +356,7 @@ void setup() {
   } else if (r.code == 404) {
     // The layout lost that screen: start from the first next time.
     rtcScreen[0] = 0;
-    sleep(SLEEP_MIN_SEC);
+    sleepNow(SLEEP_MIN_SEC);
   } else {
     serverDown();
   }
@@ -383,7 +383,7 @@ void setup() {
   snprintf(rtcScreen, sizeof(rtcScreen), "%s", screenId.c_str());
   snprintf(rtcEtag, sizeof(rtcEtag), "%s", (state["etag"] | r.etag.c_str()));
   rtcQuiet = quiet;
-  sleep(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+  sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
 }
 
 void loop() {
