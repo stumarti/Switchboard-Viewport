@@ -24,7 +24,7 @@ String shortId();      // "3F2A", the MAC's last four hex digits
 void off();
 
 // Runs setup until a network is saved (then restarts), `SETUP_TIMEOUT_MS`
-// passes, or the middle button is pressed; draws its own screen. Returns
+// passes, or the green button is pressed; draws its own screen. Returns
 // only on time-out or cancel.
 void setup(const char* reason);
 

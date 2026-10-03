@@ -1,0 +1,104 @@
+{
+ "screen": "heating",
+ "etag": "\"ac49e96ebc7a85e6dc2e\"",
+ "refreshInSec": 1800,
+ "quiet": false,
+ "generatedAt": "2026-10-03T15:39:57.769Z",
+ "data": {
+  "kind": "sections",
+  "title": "Heating",
+  "template": "single",
+  "columns": [
+   [
+    {
+     "id": "heating-main",
+     "type": "heating",
+     "title": "",
+     "data": {
+      "on": true,
+      "mode": "heat",
+      "current": null,
+      "target": null,
+      "calling": 2,
+      "total": 8,
+      "scaleMin": 15,
+      "scaleMax": 25,
+      "zones": [
+       {
+        "name": "Kitchen",
+        "current": 19.4,
+        "target": 21,
+        "mode": "heat",
+        "active": true,
+        "icon": "stove"
+       },
+       {
+        "name": "Living Room",
+        "current": 20.5,
+        "target": 21,
+        "mode": "heat",
+        "active": false,
+        "icon": "sofa"
+       },
+       {
+        "name": "Hall",
+        "current": 17.2,
+        "target": 18.5,
+        "mode": "auto",
+        "active": true,
+        "icon": "door"
+       },
+       {
+        "name": "Bathroom",
+        "current": 21.8,
+        "target": 22,
+        "mode": "heat",
+        "active": false,
+        "icon": "shower"
+       },
+       {
+        "name": "Landing",
+        "current": 18.1,
+        "target": 18,
+        "mode": "heat",
+        "active": false,
+        "icon": "stairs"
+       },
+       {
+        "name": "Bedroom",
+        "current": 18.6,
+        "target": 18,
+        "mode": "heat",
+        "active": false,
+        "icon": "bed-king"
+       },
+       {
+        "name": "Bedroom 2",
+        "current": 17.9,
+        "target": 16,
+        "mode": "off",
+        "active": false,
+        "icon": "bed-outline"
+       },
+       {
+        "name": "Office",
+        "current": 20.2,
+        "target": 20,
+        "mode": "heat",
+        "active": false,
+        "icon": "desk"
+       }
+      ],
+      "water": {
+       "on": true,
+       "mode": "heating",
+       "current": 48,
+       "target": 55
+      }
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}

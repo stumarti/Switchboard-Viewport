@@ -4,6 +4,11 @@
 
 #include "app/carousel.h"
 
+#include <ArduinoJson.h>
+#include <fstream>
+#include <sstream>
+#include <string>
+
 static int g_failed = 0, g_run = 0;
 #define CHECK_EQ(a, b)                                                                              \
   do {                                                                                             \
@@ -21,11 +26,11 @@ using carousel::Wake;
 
 static void buttons() {
   Plan p;
-  // Right steps on, left steps back, both wrap; the middle stays.
+  // The middle steps on, the left back, both wrapping; the green one goes home.
   CHECK_EQ(carousel::pick(3, 0, Wake::Next, p, 0, 0, 0), 1);
   CHECK_EQ(carousel::pick(3, 2, Wake::Next, p, 0, 0, 0), 0);
   CHECK_EQ(carousel::pick(3, 0, Wake::Prev, p, 0, 0, 0), 2);
-  CHECK_EQ(carousel::pick(3, 1, Wake::Refresh, p, 0, 0, 0), 1);
+  CHECK_EQ(carousel::pick(3, 1, Wake::Home, p, 0, 0, 0), 0);
   // A screen that's gone (the layout lost one): the first.
   CHECK_EQ(carousel::pick(2, 5, Wake::Boot, p, 0, 0, 0), 0);
   CHECK_EQ(carousel::pick(0, 0, Wake::Next, p, 0, 0, 0), 0);
@@ -47,18 +52,35 @@ static void kitchenPanel() {
   CHECK_EQ(carousel::pick(3, 2, Wake::Timer, p, 0, 0, 0), 0);
 }
 
-static void directButtons() {
-  // The kitchen panel's buttons: middle Status, right Heating, left Security,
-  // from whichever screen is showing.
-  Plan p{Mode::ReturnFirst, 30, true};
-  for (int from = 0; from < 3; ++from) {
-    CHECK_EQ(carousel::pick(3, from, Wake::Refresh, p, 0, 0, 0), 0);
-    CHECK_EQ(carousel::pick(3, from, Wake::Next, p, 0, 0, 0), 1);
-    CHECK_EQ(carousel::pick(3, from, Wake::Prev, p, 0, 0, 0), 2);
+static void homeNextPrevious() {
+  // On every screen: home, next and previous, whatever the carousel mode. From
+  // Status that's the kitchen panel's own buttons (green Status, middle
+  // Heating, left Security).
+  for (Mode m : {Mode::Stay, Mode::Advance, Mode::ReturnFirst}) {
+    Plan p{m, 30};
+    for (int from = 0; from < 3; ++from) {
+      CHECK_EQ(carousel::pick(3, from, Wake::Home, p, 0, 0, 0), 0);
+      CHECK_EQ(carousel::pick(3, from, Wake::Next, p, 0, 0, 0), (from + 1) % 3);
+      CHECK_EQ(carousel::pick(3, from, Wake::Prev, p, 0, 0, 0), (from + 2) % 3);
+    }
   }
   // One screen: every button shows it.
-  CHECK_EQ(carousel::pick(1, 0, Wake::Next, p, 0, 0, 0), 0);
-  CHECK_EQ(carousel::pick(1, 0, Wake::Prev, p, 0, 0, 0), 0);
+  Plan one;
+  CHECK_EQ(carousel::pick(1, 0, Wake::Next, one, 0, 0, 0), 0);
+  CHECK_EQ(carousel::pick(1, 0, Wake::Prev, one, 0, 0, 0), 0);
+  CHECK_EQ(carousel::pick(1, 0, Wake::Home, one, 0, 0, 0), 0);
+}
+
+static void bundleParses() {
+  std::ifstream f("test/fixtures/bundles/kitchen.json");
+  std::stringstream ss;
+  ss << f.rdbuf();
+  JsonDocument doc;
+  const DeserializationError err = deserializeJson(doc, ss.str());
+  if (err) fprintf(stderr, "bundle: %s\n", err.c_str());
+  CHECK_EQ(static_cast<bool>(err), false);
+  CHECK_EQ(doc["layout"]["screens"].size(), 3);
+  CHECK_EQ(strcmp(doc["layout"]["carousel"]["buttons"] | "", "direct"), 0);
 }
 
 static void advancing() {
@@ -87,7 +109,8 @@ static void staying() {
 int main() {
   buttons();
   kitchenPanel();
-  directButtons();
+  homeNextPrevious();
+  bundleParses();
   advancing();
   staying();
   printf("%d checks, %d failed\n", g_run, g_failed);

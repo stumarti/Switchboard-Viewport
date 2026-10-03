@@ -204,15 +204,20 @@ int battery(Gfx& g, JsonObjectConst d, Box b) {
   const uint16_t stateCol = col(d["color"]);
   const int barLeft = LC_X, barRight = LC_X + BAR_W;
 
+  // The status and the time are raised from the panel's (ey+8, ey+22),
+  // where the status touched the time and the time touched the bar: the
+  // time now ends 3 px above the bar and the status clears it. The icon and
+  // the % stay where the panel had them.
+  const int STATUS_Y = ey + 1, ETA_Y = ey + 19;
   draw::icon(g, icons::slot("ve_battery"), barLeft, ey - 4, GxEPD_BLACK);
   draw::face(g, draw::BOLD24, GxEPD_BLACK);
   draw::text(g, barLeft + 27, ey + 16, str(d["socText"], "n/a"));
   draw::face(g, draw::BOLD18, stateCol);
-  draw::textRight(g, str(d["statusText"], "Idle"), barRight, ey + 8);
+  draw::textRight(g, str(d["statusText"], "Idle"), barRight, STATUS_Y);
   const char* eta = str(d["eta"]);
   if (*eta) {
     draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::textRight(g, eta, barRight, ey + 22);
+    draw::textRight(g, eta, barRight, ETA_Y);
   }
 
   const float soc = d["soc"].isNull() ? 0.0f : d["soc"].as<float>();
@@ -321,13 +326,18 @@ int calendar(Gfx& g, JsonObjectConst s, JsonObjectConst d, Box b) {
     const char* t = str(ev["title"]);
     if (static_cast<int>(strlen(t)) > budget && budget > 3) draw::cut(title, sizeof(title), t, budget, budget - 1);
     else snprintf(title, sizeof(title), "%s", t);
-    g.print(title);
+    // In a column that ends before the panel's edge (the sidebar), cut to
+    // fit rather than run over the divider; at the edge, the panel clips it
+    // as it always did.
+    const int right = b.x + b.w >= draw::PANEL_W ? 1 << 14 : b.x + b.w - 4;
+    char fitted[160];
+    g.print(draw::fit(g, fitted, sizeof(fitted), title, right - titleX));
     const char* desc = str(ev["description"]);
     if (*desc) {
-      char dbuf[96];
+      char dbuf[96], dfit[96];
       draw::cut(dbuf, sizeof(dbuf), desc, 84, 81);
       draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::text(g, titleX, y + 33, dbuf);
+      draw::text(g, titleX, y + 33, draw::fit(g, dfit, sizeof(dfit), dbuf, right - titleX));
     }
     y += RC_LINE_H + 5;
   }
@@ -408,8 +418,17 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     const int y = HP_ROW_TOP + 10 + i * HP_ROW_H;
     if (y + 40 > draw::PANEL_H) break;
     const bool active = z["active"] | false;
-    draw::face(g, draw::BOLD24, active ? GxEPD_RED : GxEPD_BLACK);
-    draw::text(g, RPANEL_X, y + 14, str(z["name"]));
+    const uint16_t nameCol = active ? GxEPD_RED : GxEPD_BLACK;
+    // The zone's icon, if it has one: 24 px beside the name, centred on its
+    // capitals (15 px tall above y + 14), in the name's colour.
+    int nameX = RPANEL_X;
+    const char* zoneIcon = str(z["icon"]);
+    if (*zoneIcon) {
+      draw::icon(g, icons::named(zoneIcon, 24), RPANEL_X, y - 5, nameCol, Mode::Opaque);
+      nameX += 30;
+    }
+    draw::face(g, draw::BOLD24, nameCol);
+    draw::text(g, nameX, y + 14, str(z["name"]));
     char temps[40] = "";
     char v[16];
     if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%sC", draw::fixed(v, sizeof(v), z["current"].as<float>(), 1));
@@ -650,11 +669,11 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
     const char* key;
     int color;
   };
-  const R rows[] = {{"weather-sunny-alert", "PREDICTED", "solarExpected", 1},
-                    {"solar-power-variant", "GENERATED", "solarToday", 3},
-                    {"home-lightning-bolt-outline", "HOUSE USED", "loadToday", 1},
-                    {"transmission-tower-import", "FROM GRID", "gridImport", 2},
-                    {"transmission-tower-export", "TO GRID", "gridExport", 4}};
+  const R rows[] = {{"weather-sunny-alert", "Predicted", "solarExpected", 1},
+                    {"solar-power-variant", "Generated", "solarToday", 4},
+                    {"home-lightning-bolt-outline", "House Used", "loadToday", 1},
+                    {"transmission-tower-import", "From Grid", "gridImport", 2},
+                    {"transmission-tower-export", "To Grid", "gridExport", 4}};
   int y = b.y + 6;
   for (const R& r : rows) {
     draw::icon(g, icons::named(r.icon, 24), b.x + 8, y + 14, GxEPD_BLACK, Mode::Ink);
@@ -688,30 +707,94 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y;
 }
 
+// A line in dashes (6 on, 4 off), 2 px thick; `phase` carries the pattern
+// from one segment to the next so a polyline dashes evenly.
+void dashedLine(Gfx& g, int x0, int y0, int x1, int y1, uint16_t color, int& phase) {
+  const int dx = abs(x1 - x0), dy = -abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  int err = dx + dy;
+  for (;;) {
+    if (phase % 10 < 6) g.fillRect(x0, y0, 2, 2, color);
+    ++phase;
+    if (x0 == x1 && y0 == y1) break;
+    const int e2 = 2 * err;
+    if (e2 >= dy) err += dy, x0 += sx;
+    if (e2 <= dx) err += dx, y0 += sy;
+  }
+}
+
+// A bar of the graph; yellow ones get a black edge, which yellow on white
+// needs on the panel.
+void graphBar(Gfx& g, int x, int y, int w, int h, uint16_t color) {
+  if (w <= 0 || h <= 0) return;
+  g.fillRect(x, y, w, h, color);
+  if (color == GxEPD_YELLOW && w >= 3 && h >= 3) g.drawRect(x, y, w, h, GxEPD_BLACK);
+}
+
+// A legend entry in a graph's heading row: a swatch, then its name; returns
+// where the next one goes.
+int legend(Gfx& g, int x, int y, uint16_t color, const char* name) {
+  graphBar(g, x, y + 4, 12, 12, color);
+  if (color == GxEPD_WHITE) g.drawRect(x, y + 4, 12, 12, GxEPD_BLACK);
+  draw::face(g, draw::REG18, GxEPD_BLACK);
+  draw::text(g, x + 16, y + 16, name);
+  return g.getCursorX() + 14;
+}
+
 // Solar against its forecast on top; below, use stacked by source (grid,
-// battery, solar) with export under the line.
+// battery, solar) above the line, and charging the battery then export to
+// the grid under it. Both fill the column down to the footer, each with its
+// time axis labelled.
 int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
   const int x0 = b.x + 8, W = b.w - 16;
   JsonArrayConst labels = d["labels"];
   const int n = labels.size() ? static_cast<int>(labels.size()) : 24;
   const float bw = static_cast<float>(W) / n;
+  const int bwi = static_cast<int>(bw) - 2 > 1 ? static_cast<int>(bw) - 2 : 1;
   JsonObjectConst c = d["colors"];
   char buf[64];
   int y = b.y + 4;
 
+  // Heights: a heading (22) and a time axis (30 / 26) for each graph; the
+  // rest, to the footer, split 45 / 55 between solar and use.
+  const int BOTTOM = draw::PANEL_H - 38;  // clear of the footer's icons
+  const int flex = BOTTOM - y - 22 - 30 - 22 - 26;
+  const int TH = flex > 200 ? flex * 45 / 100 : 120;
+  const int BH = flex > 200 ? flex - TH : 140;
+
+  // The time axis: a 2 px line, a tick and an hour at every few buckets.
+  auto timeAxis = [&](int axisY, int labelY) {
+    g.fillRect(x0, axisY, W, 2, GxEPD_BLACK);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    const int every = (n + 7) / 8;
+    for (int i = 0; i < n; i += every) {
+      const int tx = x0 + static_cast<int>(i * bw);
+      g.fillRect(tx, axisY + 2, 2, 4, GxEPD_BLACK);
+      draw::text(g, tx + 1, labelY, str(labels[i]));
+    }
+  };
+
   // ---- Solar ----
   JsonObjectConst sol = d["solar"];
   const float tMax = fmaxf(0.5f, sol["max"] | 0.0f);
-  const int TH = 120;
   draw::face(g, draw::BOLD18, GxEPD_BLACK);
   draw::text(g, x0, y + 16, "Solar");
   JsonObjectConst t = d["totals"];
   draw::face(g, draw::REG18, GxEPD_BLACK);
   snprintf(buf, sizeof(buf), "%.1f kW", tMax);
   draw::textRight(g, buf, x0 + W, y + 16);
-  if (!t["solar"].isNull() || !t["forecast"].isNull()) {
-    snprintf(buf, sizeof(buf), "actual %.1f / predicted %.1f kWh", t["solar"] | 0.0f, t["forecast"] | 0.0f);
-    draw::text(g, x0 + 60, y + 16, buf);
+  // The legend: a bar for the actual, a dash for the forecast, with their
+  // totals for the day.
+  int lx = x0 + 64;
+  if (!t["solar"].isNull()) snprintf(buf, sizeof(buf), "Actual %.1f", t["solar"].as<float>());
+  else snprintf(buf, sizeof(buf), "Actual");
+  lx = legend(g, lx, y, col(c["solar"], 3), buf);
+  if (!t["forecast"].isNull()) snprintf(buf, sizeof(buf), "Predicted %.1f kWh", t["forecast"].as<float>());
+  else snprintf(buf, sizeof(buf), "Predicted");
+  {
+    int phase = 0;
+    dashedLine(g, lx, y + 9, lx + 13, y + 9, col(c["forecast"], 5), phase);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, lx + 18, y + 16, buf);
   }
   y += 22;
   const int top = y;
@@ -720,45 +803,63 @@ int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
   for (JsonVariantConst v : sol["actual"].as<JsonArrayConst>()) {
     if (!v.isNull() && v.as<float>() > 0) {
       const int yy = ty(v.as<float>());
-      g.fillRect(x0 + static_cast<int>(i * bw) + 1, yy, static_cast<int>(bw) - 2 > 1 ? static_cast<int>(bw) - 2 : 1, top + TH - yy, col(c["solar"], 3));
+      graphBar(g, x0 + static_cast<int>(i * bw) + 1, yy, bwi, top + TH - yy, col(c["solar"], 3));
     }
     ++i;
   }
-  // The forecast: dots along its line.
-  i = 0;
-  for (JsonVariantConst v : sol["forecast"].as<JsonArrayConst>()) {
-    if (!v.isNull()) {
-      const int cx = x0 + static_cast<int>((i + 0.5f) * bw);
-      g.fillRect(cx - 2, ty(v.as<float>()) - 1, 4, 3, col(c["forecast"], 5));
+  // The forecast: a dashed line through its points, lifted off the axis
+  // where it's zero at both ends.
+  {
+    const uint16_t fc = col(c["forecast"], 5);
+    int phase = 0, px = 0, py = 0;
+    bool have = false;
+    float pv = 0;
+    i = 0;
+    for (JsonVariantConst v : sol["forecast"].as<JsonArrayConst>()) {
+      if (v.isNull()) {
+        have = false;
+      } else {
+        const float fv = v.as<float>();
+        const int cx = x0 + static_cast<int>((i + 0.5f) * bw), cy = ty(fv) - 1;
+        if (have && (pv > 0 || fv > 0)) dashedLine(g, px, py, cx, cy, fc, phase);
+        px = cx, py = cy, pv = fv, have = true;
+      }
+      ++i;
     }
-    ++i;
   }
-  g.drawFastHLine(x0, top + TH, W, GxEPD_BLACK);
-  y = top + TH + 4;
-  draw::face(g, draw::REG18, GxEPD_BLACK);
-  i = 0;
-  for (JsonVariantConst l : labels) {
-    if (i % ((n + 7) / 8) == 0) draw::text(g, x0 + static_cast<int>(i * bw), y + 14, str(l));
-    ++i;
-  }
-  y += 22;
+  timeAxis(top + TH, top + TH + 20);
+  y = top + TH + 30;
 
   // ---- Use ----
   JsonObjectConst u = d["usage"];
   const float upMax = fmaxf(0.5f, u["max"] | 0.0f);
   const float downMax = u["exportMax"] | 0.0f;
-  const int BH = 140;
   draw::face(g, draw::BOLD18, GxEPD_BLACK);
   draw::text(g, x0, y + 16, "Use");
+  {
+    // The legend: above the line by source, below it where the rest went.
+    struct L {
+      const char* key;
+      int fallback;
+      const char* name;
+    };
+    const L ls[] = {{"fromGrid", 2, "Grid"}, {"fromBattery", 5, "Battery"}, {"fromSolar", 3, "Solar"}, {"toBattery", 5, "Charging"}, {"gridExport", 4, "Export"}};
+    int lx = x0 + 64;
+    for (const L& l : ls) {
+      // Charging shares the battery's colour unless it has its own; say so
+      // once rather than two identical swatches.
+      if (!strcmp(l.key, "toBattery") && col(c["toBattery"], 5) == col(c["fromBattery"], 5)) continue;
+      lx = legend(g, lx, y, col(c[l.key], l.fallback), l.name);
+    }
+  }
   y += 22;
   const int up = static_cast<int>((BH - 4) * (upMax / (upMax + downMax)));
   const int axisY = y + 2 + up;
   const float scale = up / upMax;
-  JsonArrayConst grid = u["fromGrid"], batt = u["fromBattery"], solar = u["fromSolar"], exp_ = u["export"];
+  JsonArrayConst grid = u["fromGrid"], batt = u["fromBattery"], solar = u["fromSolar"], exp_ = u["export"], charge = u["toBattery"];
   for (int k = 0; k < n; ++k) {
     int yTop = axisY;
     const int bx = x0 + static_cast<int>(k * bw) + 1;
-    const int bwi = static_cast<int>(bw) - 2 > 1 ? static_cast<int>(bw) - 2 : 1;
     const struct {
       JsonArrayConst a;
       const char* key;
@@ -769,13 +870,28 @@ int energyGraph(Gfx& g, JsonObjectConst d, Box b) {
       if (v <= 0) continue;
       const int h = static_cast<int>(v * scale);
       yTop -= h;
-      g.fillRect(bx, yTop, bwi, h, col(c[p.key], p.fallback));
+      graphBar(g, bx, yTop, bwi, h, col(c[p.key], p.fallback));
     }
-    const float e = exp_[k] | 0.0f;
-    if (e > 0) g.fillRect(bx, axisY, bwi, static_cast<int>(e * scale), col(c["gridExport"], 4));
+    // Below the line: into the battery next to it, then out to the grid.
+    int yBelow = axisY + 2;
+    const struct {
+      JsonArrayConst a;
+      const char* key;
+      int fallback;
+    } down[] = {{charge, "toBattery", 5}, {exp_, "gridExport", 4}};
+    for (const auto& p : down) {
+      const float v = p.a[k] | 0.0f;
+      if (v <= 0) continue;
+      const int h = static_cast<int>(v * scale);
+      graphBar(g, bx, yBelow, bwi, h, col(c[p.key], p.fallback));
+      yBelow += h;
+    }
   }
-  g.drawFastHLine(x0, axisY, W, GxEPD_BLACK);
-  return y + BH + 4 - b.y;
+  // The zero line, and the time axis along the bottom.
+  g.fillRect(x0, axisY, W, 2, GxEPD_BLACK);
+  const int bottom = y + BH;
+  timeAxis(bottom, bottom + 20);
+  return bottom + 26 - b.y;
 }
 
 int alerts(Gfx& g, JsonObjectConst d, Box b) {
@@ -958,28 +1074,60 @@ int media(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y;
 }
 
+// Bus and train stops, a row each, as a stop board has them: the route in a
+// badge of its colour (or its icon, when there's no route number), where
+// it's going large and the stop under it; on the right the next departures,
+// the minutes large in their colour (red when due) and the clock time under.
 int transport(Gfx& g, JsonObjectConst d, Box b) {
+  const int ROW_H = 58, COL_W = 92, BADGE_H = 32;
   int y = b.y;
-  char buf[24];
+  char buf[64], fitted[96];
+  int16_t bx, by;
+  uint16_t tw, th;
   for (JsonObjectConst t : d["routes"].as<JsonArrayConst>()) {
+    if (y + ROW_H > draw::PANEL_H - 24) break;
     const uint16_t c = col(t["color"], 4);
-    draw::icon(g, icons::named(str(t["icon"], "bus"), 24), b.x + 8, y + 6, c, Mode::Ink);
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 20, str(t["name"]));
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 40, str(t["stop"]));
-    int rx = b.x + b.w - 8;
-    JsonArrayConst deps = t["departures"];
-    for (int i = static_cast<int>(deps.size()) - 1; i >= 0; --i) {
-      JsonObjectConst x = deps[i];
-      draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::textRight(g, str(x["time"]), rx, y + 18);
-      draw::face(g, draw::BOLD18, col(x["color"], 1));
-      snprintf(buf, sizeof(buf), "%s", str(x["text"]));
-      draw::textRight(g, buf, rx, y + 40);
-      rx -= 76;
+    int x = b.x + 8;
+    const char* route = str(t["route"]);
+    if (*route) {
+      draw::face(g, draw::BOLD24, GxEPD_WHITE);
+      g.getTextBounds(route, 0, 0, &bx, &by, &tw, &th);
+      const int w = tw + 16 > 48 ? tw + 16 : 48;
+      g.fillRoundRect(x, y + 6, w, BADGE_H, 4, c);
+      draw::textCentered(g, route, x, w, y + 6 + BADGE_H / 2 + 8);
+      x += w + 12;
+    } else {
+      draw::icon(g, icons::named(str(t["icon"], "bus"), 24), x + 12, y + 10, c, Mode::Ink);
+      x += 48 + 12;
     }
-    y += 50;
+    JsonArrayConst deps = t["departures"];
+    const int n = deps.size() > 2 ? 2 : static_cast<int>(deps.size());
+    const int textW = b.x + b.w - 8 - n * COL_W - x - 6;
+    const char* dest = str(t["destination"], str(t["name"]));
+    draw::face(g, draw::BOLD24, GxEPD_BLACK);
+    draw::text(g, x, y + 28, draw::fit(g, fitted, sizeof(fitted), dest, textW));
+    if (*str(t["stop"])) {
+      draw::face(g, draw::REG18, GxEPD_BLACK);
+      draw::text(g, x, y + 50, draw::fit(g, fitted, sizeof(fitted), str(t["stop"]), textW));
+    }
+    // The soonest at the right edge, the one after to its left.
+    int rx = b.x + b.w - 8;
+    for (int k = 0; k < n; ++k) {
+      JsonObjectConst x2 = deps[k];
+      const int colRight = rx - (n - 1 - k) * COL_W;
+      draw::face(g, draw::BOLD24, col(x2["color"], 1));
+      draw::textRight(g, draw::fit(g, buf, sizeof(buf), str(x2["text"]), COL_W - 8), colRight, y + 28);
+      if (*str(x2["time"])) {
+        draw::face(g, draw::REG18, GxEPD_BLACK);
+        draw::textRight(g, str(x2["time"]), colRight, y + 50);
+      }
+    }
+    if (n == 0) {
+      draw::face(g, draw::REG18, GxEPD_BLACK);
+      draw::textRight(g, "No departures", rx, y + 28);
+    }
+    y += ROW_H;
+    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
   }
   return y - b.y;
 }
@@ -1031,6 +1179,8 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   if (!strcmp(type, "openings")) return openings(g, s, d, b);
   if (!strcmp(type, "motion")) return motion(g, s, d, b);
   if (!strcmp(type, "cameras")) return cameras(g, s, d, b);
+  // A gap, to move what follows down the column.
+  if (!strcmp(type, "spacer")) return d["height"] | 0;
   // The rest: an optional label, then the content.
   const int lh = label(g, s, b);
   Box c{b.x, b.y + lh, b.w};
@@ -1250,10 +1400,12 @@ void roomFinder(Gfx& g, JsonObjectConst d, const char* title) {
 
 // The panel's footer: [refresh] time [battery icon] percentage, ending 12 px
 // from the right edge along y = 468; the bed-and-clock before it in quiet
-// hours.
+// hours; the carousel's icons before that. A thin bar, with space either
+// side, between the three groups.
 void footer(Gfx& g, const Ctx& ctx) {
   const int FOOTER_Y = 468, FOOTER_ICON_Y = FOOTER_Y - 18, FOOTER_TINY_Y = FOOTER_Y - 13;
   const int FOOTER_MARGIN_R = 12, FOOTER_GAP = 10;
+  const int BAR_GAP = 10, BAR_TOP = FOOTER_Y - 16, BAR_H = 18;
   const int pct = ctx.battPct;
   const uint16_t batCol = pct < 0 ? GxEPD_BLACK : pct > BATT_GREEN_PCT ? GxEPD_GREEN : pct > BATT_RED_PCT ? GxEPD_BLACK : GxEPD_RED;
   char pctStr[16];
@@ -1265,10 +1417,18 @@ void footer(Gfx& g, const Ctx& ctx) {
   const int iconX = pctX - 24 - 2;
   draw::icon(g, icons::slot("vf_battery"), iconX, FOOTER_ICON_Y, batCol, Mode::Opaque);
   draw::text(g, pctX, FOOTER_Y, pctStr);
+  // A dotted bar between two groups, `right` the later one's left side:
+  // returns where the group before it ends.
+  auto bar = [&](int right) {
+    const int bx = right - BAR_GAP - 1;
+    for (int y = BAR_TOP; y < BAR_TOP + BAR_H; y += 3) g.drawPixel(bx, y, GxEPD_BLACK);
+    return bx - BAR_GAP;
+  };
 
   draw::face(g, draw::REG18, GxEPD_BLACK);
   const draw::Bounds tb = draw::bounds(g, ctx.time);
-  const int timeX = iconX - FOOTER_GAP - tb.w;
+  const int timeEnd = ctx.footerBars ? bar(iconX) : iconX - FOOTER_GAP;
+  const int timeX = timeEnd - tb.w;
   draw::text(g, timeX, FOOTER_Y, ctx.time);
   const int refX = timeX - 16 - 4;
   draw::icon(g, icons::slot("vf_refresh"), refX, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
@@ -1279,7 +1439,7 @@ void footer(Gfx& g, const Ctx& ctx) {
   }
   // The carousel: every screen's icon, the one showing underlined.
   if (ctx.markCount > 1) {
-    x -= 8;
+    x = ctx.footerBars ? bar(x) + 6 : x - 8;
     const int n = ctx.markCount;
     const int step = 16 + 6;
     const int x0 = x - n * step + 6;

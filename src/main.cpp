@@ -151,17 +151,25 @@ String pageUrl() { return server::base() + "/#/viewports/" + server::urlEncode(w
 
 // Paired (a token kept), or a screen saying it's waiting.
 void ensurePaired() {
+  LOGF("[boot] check pairing: token=%s\n", server::token().length() ? "present" : "missing");
   if (server::token().length()) return;
   String status;
   const server::Pairing p = server::pair(status);
+  LOGF("[boot] pairing result=%d status=%s\n", static_cast<int>(p), status.c_str());
   if (p == server::Pairing::Unreachable) serverDown();
   if (p != server::Pairing::Approved) waitForApproval(status);
 }
 
-// The bundle: from the server (304 = the cached one still holds).
+// Why the bundle couldn't be used when the server did answer (empty: it
+// didn't answer at all).
+String g_bundleWhy;
+
+// The bundle: from the server (304 = the cached one still holds). If the cache
+// is missing or unreadable, retry once without the ETag so it can repull.
 bool fetchBundle(JsonDocument& bundle) {
   const String etag = store::get("bundleEtag", "");
-  server::Response r = server::get("/api/viewports/me/bundle", etag.length() && store::exists("/bundle.json") ? etag.c_str() : nullptr);
+  const bool hasCache = etag.length() && store::exists("/bundle.json");
+  server::Response r = server::get("/api/viewports/me/bundle", hasCache ? etag.c_str() : nullptr);
   if (r.code == 401 || r.code == 403 || r.code == 404) {
     // The server doesn't know this token (re-installed, or the display was
     // removed): register again.
@@ -169,16 +177,48 @@ bool fetchBundle(JsonDocument& bundle) {
     ensurePaired();
     r = server::get("/api/viewports/me/bundle");
   }
+
   String text;
-  if (r.code == 304) text = store::readText("/bundle.json");
-  else if (r.code == 200) {
+  if (r.code == 304) {
+    text = store::readText("/bundle.json");
+    if (text.length() == 0) {
+      LOGF("[bundle] 304 cache missing/empty, retrying without ETag\n");
+      r = server::get("/api/viewports/me/bundle");
+      if (r.code == 200) {
+        text = r.body;
+        store::writeText("/bundle.json", text);
+        store::put("bundleEtag", r.etag);
+      }
+    }
+  }
+  if (r.code == 200) {
     text = r.body;
     store::writeText("/bundle.json", text);
     store::put("bundleEtag", r.etag);
-  } else {
+  }
+  if (r.code != 200 && r.code != 304) return false;
+  if (text.length() == 0) {
+    LOGF("[bundle] no bundle body from server or cache\n");
     return false;
   }
-  return !deserializeJson(bundle, text);
+  if (const DeserializationError err = deserializeJson(bundle, text)) {
+    LOGF("[bundle] failed to parse bundle JSON (%s, %u bytes); retrying without ETag\n", err.c_str(), text.length());
+    if (etag.length()) {
+      r = server::get("/api/viewports/me/bundle");
+      if (r.code == 200) {
+        text = r.body;
+        store::writeText("/bundle.json", text);
+        store::put("bundleEtag", r.etag);
+        if (!deserializeJson(bundle, text)) return true;
+      }
+    }
+    // Not kept: the next wake asks for it whole again.
+    store::remove("bundleEtag");
+    g_bundleWhy = String("Couldn't read its layout from the server (") + err.c_str() + ")";
+    return false;
+  }
+  LOGF("[bundle] loaded bundle OK from %s\n", r.code == 304 ? "cache" : "server");
+  return true;
 }
 
 [[noreturn]] void showInfo() {
@@ -193,18 +233,16 @@ bool fetchBundle(JsonDocument& bundle) {
   const char* name = bundle["name"] | "Not paired yet";
   const char* layout = bundle["dashboard"]["name"] | "";
   const int refresh = bundle["layout"]["refreshIntervalMin"] | 30;
-  // With direct buttons, each says which screen it shows.
-  const bool direct = !strcmp(bundle["layout"]["carousel"]["buttons"] | "step", "direct");
-  std::vector<String> titles;
+  // The home button's screen: the first one switched on.
+  String home;
   for (JsonObjectConst s : bundle["layout"]["screens"].as<JsonArrayConst>())
-    if (s["enabled"] | true) titles.push_back(s["title"] | "");
-  auto title = [&](int i) { return titles.empty() ? "" : titles[i < 0 ? titles.size() - 1 : std::min<size_t>(i, titles.size() - 1)].c_str(); };
+    if (s["enabled"] | true) {
+      home = s["title"] | "";
+      break;
+    }
   display::show([&](draw::Gfx& g) {
     sys::Info in{refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()};
-    in.direct = direct;
-    in.left = title(-1);
-    in.middle = title(0);
-    in.right = title(1);
+    in.home = home.c_str();
     sys::info(g, in);
   });
   remember(Panel::Info, "");
@@ -217,7 +255,7 @@ carousel::Wake carouselWake(hw::Wake w) {
     case hw::Wake::Next: return carousel::Wake::Next;
     case hw::Wake::Prev: return carousel::Wake::Prev;
     case hw::Wake::PowerOn: return carousel::Wake::Boot;
-    default: return carousel::Wake::Refresh;
+    default: return carousel::Wake::Home;
   }
 }
 
@@ -299,7 +337,11 @@ void setup() {
   if (!server::resolve()) fail("vx_server_off", "Not connected to Switchboard", "Can't find Switchboard Server on this network");
   ensurePaired();
   JsonDocument bundle;
-  if (!fetchBundle(bundle)) serverDown();
+  if (!fetchBundle(bundle)) {
+    // The server answered, but with something the display couldn't use.
+    if (g_bundleWhy.length()) fail("vx_server_off", "Not connected to Switchboard", g_bundleWhy.c_str());
+    serverDown();
+  }
   ota::confirm();
 
   // The clock and Wi-Fi the server keeps for every device.
@@ -356,7 +398,6 @@ void setup() {
   carousel::Plan plan;
   plan.mode = carousel::modeOf(layout["carousel"]["mode"] | "stay");
   plan.everyMin = layout["carousel"]["everyMin"] | 30;
-  plan.direct = !strcmp(layout["carousel"]["buttons"] | "step", "direct");
   const int64_t now = nowEpoch();
   const int index = carousel::pick(static_cast<int>(ids.size()), current, carouselWake(wake), plan, now, rtcLastPress, rtcLastChange);
   if (buttonWake(wake)) rtcLastPress = now;
@@ -370,6 +411,16 @@ void setup() {
   const String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
   server::Response r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), force ? nullptr : rtcEtag);
   JsonDocument state;
+  // The server counts its wake time from now: what the drawing takes (a
+  // panel refresh is ~20 s) comes off it, so a display on the clock wakes on
+  // its mark, not that much after.
+  const uint32_t askedAt = millis();
+  auto sleepFor = [&](uint32_t serverSec) {
+    // (and the pause before sleep, hw::sleepFor's PRE_SLEEP_DELAY_MS)
+    const uint32_t spent = (millis() - askedAt + PRE_SLEEP_DELAY_MS + 500) / 1000;
+    return carousel::sleepSec(serverSec > spent ? serverSec - spent : 0, index, plan, now + spent, rtcLastPress, rtcLastChange,
+                              SLEEP_MIN_SEC, SLEEP_MAX_SEC);
+  };
   uint32_t refreshIn = r.refreshIn;
   bool quiet = r.quiet;
   if (r.code == 200) {
@@ -382,7 +433,7 @@ void setup() {
     // still needs a redraw, from the copy kept.
     if (quiet == rtcQuiet) {
       LOGF("Screen %s unchanged\n", screenId.c_str());
-      sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+      sleepNow(sleepFor(refreshIn));
     }
     if (deserializeJson(state, store::readText(cache.c_str()))) {
       rtcEtag[0] = 0;  // no copy: fetch it whole next time
@@ -425,7 +476,7 @@ void setup() {
   snprintf(rtcScreen, sizeof(rtcScreen), "%s", screenId.c_str());
   snprintf(rtcEtag, sizeof(rtcEtag), "%s", (state["etag"] | r.etag.c_str()));
   rtcQuiet = quiet;
-  sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+  sleepNow(sleepFor(refreshIn));
 }
 
 void loop() {

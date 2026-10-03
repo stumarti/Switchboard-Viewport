@@ -24,6 +24,8 @@ class Adafruit_GFX : public Print {
   void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t c);
   void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t c);
   void fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t c);
+  void fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t c);
+  void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t corners, int16_t delta, uint16_t c);
 
   void setFont(const GFXfont* f) { gfxFont = const_cast<GFXfont*>(f); }
   void setTextSize(uint8_t s) { textsize_x = textsize_y = s > 0 ? s : 1; }

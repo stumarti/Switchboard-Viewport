@@ -142,6 +142,27 @@ const char* fixed(char* out, size_t cap, float value, int prec) {
   return out;
 }
 
+const char* fit(Gfx& g, char* out, size_t cap, const char* s, int maxW) {
+  snprintf(out, cap, "%s", s ? s : "");
+  int16_t bx, by;
+  uint16_t w, h;
+  g.getTextBounds(out, 0, 0, &bx, &by, &w, &h);
+  if (static_cast<int>(w) <= maxW) return out;
+  size_t n = strlen(out);
+  while (n > 0) {
+    --n;
+    while (n > 0 && (static_cast<unsigned char>(out[n]) & 0xC0) == 0x80) --n;  // whole UTF-8 characters
+    char trial[160];
+    snprintf(trial, sizeof(trial), "%.*s...", static_cast<int>(n), out);
+    g.getTextBounds(trial, 0, 0, &bx, &by, &w, &h);
+    if (static_cast<int>(w) <= maxW || n == 0) {
+      snprintf(out, cap, "%s", trial);
+      return out;
+    }
+  }
+  return out;
+}
+
 void cut(char* out, size_t cap, const char* src, int limit, int keep) {
   const size_t len = strlen(src);
   if (static_cast<int>(len) <= limit) {

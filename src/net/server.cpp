@@ -4,6 +4,7 @@
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <esp_arduino_version.h>
 
 #include "app/store.h"
 #include "config.h"
@@ -33,26 +34,54 @@ bool parseAddress(const String& s, String& host, uint16_t& port) {
 
 bool viaMdns() {
   if (!g_mdns) g_mdns = MDNS.begin((String("switchboard-viewport-") + wifi::shortId()).c_str());
-  if (!g_mdns) return false;
+  if (!g_mdns) {
+    LOGF("[server] MDNS begin failed (service=%s, shortId=%s)\n", SERVER_MDNS_NAME, wifi::shortId().c_str());
+    return false;
+  }
   const int n = MDNS.queryService(SERVER_MDNS_NAME, "tcp");
   if (n > 0) {
+    // Arduino-ESP32 3.x renamed MDNSResponder::IP() to address().
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+    g_host = MDNS.address(0).toString();
+#else
     g_host = MDNS.IP(0).toString();
+#endif
     g_port = MDNS.port(0);
+    LOGF("[server] mDNS hit: %s:%u (service count=%d)\n", g_host.c_str(), g_port, n);
     return true;
   }
   const IPAddress ip = MDNS.queryHost(SERVER_MDNS_NAME, 3000);
-  if (ip == IPAddress(0, 0, 0, 0)) return false;
+  if (ip == IPAddress(0, 0, 0, 0)) {
+    LOGF("[server] mDNS failed for %s\n", SERVER_MDNS_NAME);
+    return false;
+  }
   g_host = ip.toString();
   g_port = SERVER_DEFAULT_PORT;
+  LOGF("[server] mDNS host lookup: %s:%u\n", g_host.c_str(), g_port);
   return true;
 }
 
 bool find(bool fresh) {
   // An address typed in at setup always wins.
-  if (parseAddress(store::get("server", ""), g_host, g_port)) return true;
-  if (!fresh && parseAddress(store::get("srvcache", ""), g_host, g_port)) return true;
+  const String server = store::get("server", "");
+  if (server.length()) {
+    LOGF("[server] using stored server override: %s\n", server.c_str());
+  }
+  if (parseAddress(server, g_host, g_port)) {
+    LOGF("[server] resolved explicit server to %s:%u\n", g_host.c_str(), g_port);
+    return true;
+  }
+  const String cache = store::get("srvcache", "");
+  if (!fresh && cache.length()) {
+    LOGF("[server] retrying cached server: %s\n", cache.c_str());
+  }
+  if (!fresh && parseAddress(cache, g_host, g_port)) {
+    LOGF("[server] resolved cached server to %s:%u\n", g_host.c_str(), g_port);
+    return true;
+  }
   if (!viaMdns()) return false;
   store::put("srvcache", address());
+  LOGF("[server] saved discovery result: %s\n", address().c_str());
   return true;
 }
 
@@ -71,15 +100,21 @@ void headers(HTTPClient& http) {
 Response request(const String& path, const char* method, const String* body, const char* ifNoneMatch, bool asBytes,
                  uint32_t timeoutMs) {
   Response r;
+  const bool hasToken = token().length() > 0;
+  LOGF("[server] %s %s (token=%s, timeout=%u ms)\n", method, path.c_str(), hasToken ? "present" : "missing", timeoutMs);
   for (int attempt = 0; attempt < 2; ++attempt) {
     if (!g_host.length() && !find(attempt == 1)) {
+      LOGF("[server] cannot resolve host for %s\n", path.c_str());
       r.code = -100;
       return r;
     }
     HTTPClient http;
     http.setTimeout(timeoutMs);
     http.setConnectTimeout(4000);
-    if (!http.begin(base() + path)) {
+    const String url = base() + path;
+    LOGF("[server] request URL: %s\n", url.c_str());
+    if (!http.begin(url)) {
+      LOGF("[server] http.begin() failed for %s\n", url.c_str());
       r.code = -101;
       return r;
     }
@@ -89,10 +124,11 @@ Response request(const String& path, const char* method, const String* body, con
     const char* keep[] = {"ETag", "X-Refresh-In", "X-Quiet"};
     http.collectHeaders(keep, 3);
     r.code = body ? http.sendRequest(method, *body) : http.GET();
+    LOGF("[server] %s %s -> HTTP %d\n", method, path.c_str(), r.code);
     if (r.code < 0 && attempt == 0) {
       // Not there any more: find it again (unless it was typed in).
       http.end();
-      LOGF("%s: %s, looking for the server again\n", path.c_str(), HTTPClient::errorToString(r.code).c_str());
+      LOGF("[server] %s: %s, looking for the server again\n", path.c_str(), HTTPClient::errorToString(r.code).c_str());
       g_host = "";
       store::remove("srvcache");
       continue;
@@ -151,18 +187,22 @@ Pairing pair(String& status) {
   serializeJson(body, json);
   // Registering needs no token (and a stale one mustn't be sent).
   const String had = token();
+  LOGF("[server] pairing: hadToken=%s, body=%s\n", had.length() ? "yes" : "no", json.c_str());
   if (had.length()) forgetToken();
   const Response r = request("/api/pairing/register", "POST", &json, nullptr, false, 8000);
   if (r.code < 200 || r.code >= 300) {
     if (had.length()) setToken(had);
     status = r.code < 0 ? "Can't reach the server" : "The server answered " + String(r.code);
+    LOGF("[server] pairing failed: %s\n", status.c_str());
     return Pairing::Unreachable;
   }
   JsonDocument doc;
   deserializeJson(doc, r.body);
   const String st = doc["status"] | "pending";
+  const String token = doc["token"] | "";
+  LOGF("[server] pairing response: status=%s, token=%s\n", st.c_str(), token.length() ? "present" : "missing");
   if (st == "approved") {
-    const String t = doc["token"] | "";
+    const String t = token;
     if (t.length()) setToken(t);
     status = "Approved";
     return Pairing::Approved;

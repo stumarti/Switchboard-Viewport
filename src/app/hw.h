@@ -10,11 +10,11 @@ namespace hw {
 enum class Wake : uint8_t {
   PowerOn,      // first power-on, a reset or a flash
   Timer,        // the refresh the server scheduled
-  Refresh,      // middle (KEY0)
-  Next,         // right (KEY1)
+  Home,         // right, green (KEY0): the first screen, fetched afresh
+  Next,         // middle (KEY1)
   Prev,         // left (KEY2)
-  SetupHold,    // middle, held: Wi-Fi setup
-  ClearHold,    // right, held: fill the panel white
+  SetupHold,    // right, held: Wi-Fi setup
+  ClearHold,    // middle, held: fill the panel white
   InfoHold      // left, held: the button card and device details
 };
 

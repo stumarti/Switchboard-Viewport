@@ -221,7 +221,7 @@ void setup(const char* reason) {
       dns.stop();
       ESP.restart();
     }
-    // The middle button gives up on setup (back to the screens).
+    // The green button (the one that started it) gives up on setup.
     if (millis() - start > 3000 && digitalRead(BTN_KEY0) == LOW) break;
     delay(5);
   }

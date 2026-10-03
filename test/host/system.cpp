@@ -56,12 +56,9 @@ int main(int argc, char** argv) {
   {
     Canvas c;
     sys::Info in{30, "11:04", 76, "192.168.1.20:45678", "Kitchen panel", "Kitchen panel", "v0.1.0", "MAC A0:B1:C2:00:01:01", "Home -58 dBm"};
-    in.direct = true;
-    in.left = "Security";
-    in.middle = "Status";
-    in.right = "Heating";
+    in.home = "Status";
     sys::info(c, in);
-    save(c, "info-direct");
+    save(c, "info-home");
   }
   {
     Canvas c;

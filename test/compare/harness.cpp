@@ -132,6 +132,7 @@ static int compare(const char* name, const Canvas& panel, const std::string& out
   ctx.battPct = batteryPercent(readBatteryVoltage());
   ctx.markCount = 0;  // the panel had no carousel marks
   ctx.quiet = doc["quiet"] | false;
+  ctx.footerBars = false;  // the bars between the footer's groups came later
   Canvas ours;
   screens::drawScreen(ours, doc["data"], ctx);
 
