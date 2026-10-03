@@ -233,18 +233,16 @@ bool fetchBundle(JsonDocument& bundle) {
   const char* name = bundle["name"] | "Not paired yet";
   const char* layout = bundle["dashboard"]["name"] | "";
   const int refresh = bundle["layout"]["refreshIntervalMin"] | 30;
-  // With direct buttons, each says which screen it shows.
-  const bool direct = !strcmp(bundle["layout"]["carousel"]["buttons"] | "step", "direct");
-  std::vector<String> titles;
+  // The home button's screen: the first one switched on.
+  String home;
   for (JsonObjectConst s : bundle["layout"]["screens"].as<JsonArrayConst>())
-    if (s["enabled"] | true) titles.push_back(s["title"] | "");
-  auto title = [&](int i) { return titles.empty() ? "" : titles[i < 0 ? titles.size() - 1 : std::min<size_t>(i, titles.size() - 1)].c_str(); };
+    if (s["enabled"] | true) {
+      home = s["title"] | "";
+      break;
+    }
   display::show([&](draw::Gfx& g) {
     sys::Info in{refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()};
-    in.direct = direct;
-    in.left = title(-1);
-    in.middle = title(0);
-    in.right = title(1);
+    in.home = home.c_str();
     sys::info(g, in);
   });
   remember(Panel::Info, "");
@@ -257,7 +255,7 @@ carousel::Wake carouselWake(hw::Wake w) {
     case hw::Wake::Next: return carousel::Wake::Next;
     case hw::Wake::Prev: return carousel::Wake::Prev;
     case hw::Wake::PowerOn: return carousel::Wake::Boot;
-    default: return carousel::Wake::Refresh;
+    default: return carousel::Wake::Home;
   }
 }
 
@@ -400,7 +398,6 @@ void setup() {
   carousel::Plan plan;
   plan.mode = carousel::modeOf(layout["carousel"]["mode"] | "stay");
   plan.everyMin = layout["carousel"]["everyMin"] | 30;
-  plan.direct = !strcmp(layout["carousel"]["buttons"] | "step", "direct");
   const int64_t now = nowEpoch();
   const int index = carousel::pick(static_cast<int>(ids.size()), current, carouselWake(wake), plan, now, rtcLastPress, rtcLastChange);
   if (buttonWake(wake)) rtcLastPress = now;

@@ -76,8 +76,10 @@ const int LONG_PRESS_MS = 1000;
 #define LED_PIN            6    // green LED, inverted (LOW = on)
 #define BATTERY_ADC_PIN    1    // battery voltage via a /2 divider
 #define BATTERY_ENABLE_PIN 21   // enables the battery monitor circuit
-#define BTN_KEY0           3    // green, middle: refresh / (hold) setup
-#define BTN_KEY1           4    // right: next screen / (hold) clear
+// The three buttons along the top, as Seeed documents the E1002 (and the
+// kitchen panel used them: KEY0 Status, KEY1 Heating, KEY2 Security):
+#define BTN_KEY0           3    // right, the green one: home / (hold) Wi-Fi setup
+#define BTN_KEY1           4    // middle: next screen / (hold) clear
 #define BTN_KEY2           5    // left: previous screen / (hold) device info
 #define SERIAL_RX          44
 #define SERIAL_TX          43

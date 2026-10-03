@@ -35,21 +35,21 @@ Wake wakeReason() {
   if (cause == ESP_SLEEP_WAKEUP_TIMER) return Wake::Timer;
   if (cause != ESP_SLEEP_WAKEUP_EXT1) return Wake::PowerOn;
   const uint64_t mask = esp_sleep_get_ext1_wakeup_status();
-  if (mask & (1ULL << BTN_KEY0)) return held(BTN_KEY0) ? Wake::SetupHold : Wake::Refresh;
+  if (mask & (1ULL << BTN_KEY0)) return held(BTN_KEY0) ? Wake::SetupHold : Wake::Home;
   if (mask & (1ULL << BTN_KEY1)) return held(BTN_KEY1) ? Wake::ClearHold : Wake::Next;
   if (mask & (1ULL << BTN_KEY2)) return held(BTN_KEY2) ? Wake::InfoHold : Wake::Prev;
-  return Wake::Refresh;
+  return Wake::Home;
 }
 
 const char* wakeName(Wake w) {
   switch (w) {
     case Wake::PowerOn: return "power-on";
     case Wake::Timer: return "timer";
-    case Wake::Refresh: return "middle (refresh)";
-    case Wake::Next: return "right (next)";
+    case Wake::Home: return "right, green (home)";
+    case Wake::Next: return "middle (next)";
     case Wake::Prev: return "left (previous)";
-    case Wake::SetupHold: return "middle held (Wi-Fi setup)";
-    case Wake::ClearHold: return "right held (clear)";
+    case Wake::SetupHold: return "right held (Wi-Fi setup)";
+    case Wake::ClearHold: return "middle held (clear)";
     case Wake::InfoHold: return "left held (info)";
   }
   return "?";
