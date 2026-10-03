@@ -11,3 +11,4 @@ test/host/build/
 .vscode/
 .DS_Store
 Thumbs.db
+test/compare/out/

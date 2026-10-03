@@ -43,7 +43,15 @@ jobs:
       - name: Host tests
         run: ./test/host/run.sh
 
+      # The original kitchen panel firmware and this one + the server, on
+      # the same captured Home Assistant: every screen must match exactly.
+      - name: Matches the kitchen panel pixel for pixel
+        run: ./test/compare/compare.sh
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: renders
-          path: test/host/out/
+          path: |
+            test/host/out/
+            test/compare/out/

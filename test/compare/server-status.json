@@ -1,0 +1,269 @@
+{
+ "quiet": false,
+ "data": {
+  "kind": "sections",
+  "title": "Status",
+  "template": "sidebar",
+  "columns": [
+   [
+    {
+     "id": "status-weather",
+     "type": "weather",
+     "title": "",
+     "data": {
+      "condition": "partlycloudy",
+      "icon": "partlycloudy",
+      "temperatureText": "16",
+      "humidityText": "68",
+      "windText": "14",
+      "bearing": 230,
+      "uv": 3,
+      "uvText": "3.0",
+      "rain": {
+       "state": "starts",
+       "time": "20:00",
+       "text": "Rain at 20:00"
+      },
+      "solar": {
+       "value": 18.5,
+       "text": "Expecting 18.5kWh today"
+      },
+      "temperature": 16.4,
+      "feelsLike": 15,
+      "humidity": 68,
+      "windSpeed": 14,
+      "windUnit": "km/h",
+      "temperatureUnit": "°C",
+      "forecast": [
+       {
+        "label": "Sun",
+        "condition": "rainy",
+        "high": 18,
+        "low": 10
+       },
+       {
+        "label": "Mon",
+        "condition": "sunny",
+        "high": 19,
+        "low": 9
+       },
+       {
+        "label": "Tue",
+        "condition": "cloudy",
+        "high": 17,
+        "low": 10
+       }
+      ]
+     }
+    },
+    {
+     "id": "status-energy",
+     "type": "energy",
+     "title": "",
+     "data": {
+      "style": "grid",
+      "solarToday": {
+       "value": 11.8,
+       "unit": "kWh",
+       "text": "11.8 kWh"
+      },
+      "solarExpected": null,
+      "loadToday": {
+       "value": 9.1,
+       "unit": "kWh",
+       "text": "9.1 kWh"
+      },
+      "gridExport": {
+       "value": 3.4,
+       "unit": "kWh",
+       "text": "3.4 kWh"
+      },
+      "gridImport": {
+       "value": 0.6,
+       "unit": "kWh",
+       "text": "0.6 kWh"
+      },
+      "solarPct": null
+     }
+    },
+    {
+     "id": "status-battery",
+     "type": "battery",
+     "title": "",
+     "data": {
+      "soc": 87,
+      "socText": "87 %",
+      "status": "charging",
+      "statusText": "Charging",
+      "eta": "full at 17:17",
+      "color": 4,
+      "low": false,
+      "critical": false
+     }
+    }
+   ],
+   [
+    {
+     "id": "status-icons",
+     "type": "statusIcons",
+     "title": "",
+     "data": {
+      "icons": [
+       {
+        "name": "Alarm",
+        "icon": "shield-check",
+        "color": 4,
+        "state": "disarmed"
+       },
+       {
+        "name": "Doors",
+        "icon": "door-open",
+        "color": 2,
+        "state": "on"
+       },
+       {
+        "name": "Windows",
+        "icon": "window-open",
+        "color": 2,
+        "state": "off"
+       },
+       {
+        "name": "Heating",
+        "icon": "radiator",
+        "color": 2,
+        "state": "heat"
+       },
+       {
+        "name": "Hot water",
+        "icon": "water-boiler",
+        "color": 2,
+        "state": "heating"
+       },
+       {
+        "name": "Plants",
+        "icon": "flower",
+        "color": 2,
+        "state": "Almost Dry"
+       },
+       {
+        "name": "Vacuum 1",
+        "icon": "robot-vacuum",
+        "color": 4,
+        "state": "cleaning"
+       },
+       {
+        "name": "Vacuum 2",
+        "icon": "robot-vacuum-variant",
+        "color": 1,
+        "state": "docked"
+       },
+       {
+        "name": "Mower",
+        "icon": "robot-mower",
+        "color": 5,
+        "state": "docked"
+       }
+      ]
+     }
+    },
+    {
+     "id": "status-now",
+     "type": "now",
+     "title": "Now",
+     "data": {
+      "items": [
+       {
+        "icon": "shield-check",
+        "color": 4,
+        "line1": "Alarm disarmed",
+        "line2": "Disarmed by Alex at the front door"
+       },
+       {
+        "icon": "radiator",
+        "color": 2,
+        "line1": "Heating",
+        "line2": "2 zones heating"
+       },
+       {
+        "icon": "water-boiler",
+        "color": 2,
+        "line1": "Hot water",
+        "line2": "48C / 55C target"
+       },
+       {
+        "icon": "door-open",
+        "color": 2,
+        "line1": "Door open",
+        "line2": "Front"
+       },
+       {
+        "icon": "window-open",
+        "color": 2,
+        "line1": "Window open",
+        "line2": "Living room"
+       },
+       {
+        "icon": "watering-can",
+        "color": 5,
+        "line1": "Plant needs water",
+        "line2": "House plant"
+       },
+       {
+        "icon": "robot-vacuum",
+        "color": 4,
+        "line1": "Vacuum 1 cleaning",
+        "line2": "72% battery"
+       }
+      ]
+     }
+    },
+    {
+     "id": "status-today",
+     "type": "calendar",
+     "title": "Today",
+     "data": {
+      "lines": [
+       {
+        "day": "Today",
+        "time": "11:00",
+        "title": "School run",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 11:00 · School run"
+       },
+       {
+        "day": "Today",
+        "time": "17:00",
+        "title": "Weekly planning",
+        "allDay": false,
+        "color": 5,
+        "description": "Agenda in the shared drive, brin...",
+        "text": "Today 17:00 · Weekly planning"
+       },
+       {
+        "day": "Today",
+        "time": "20:30",
+        "title": "Football practice",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 20:30 · Football practice"
+       },
+       {
+        "day": "Today",
+        "time": "",
+        "title": "Gran's birthday",
+        "allDay": true,
+        "color": 2,
+        "description": "",
+        "text": "Today · Gran's birthday"
+       }
+      ]
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}
