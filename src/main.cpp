@@ -414,6 +414,16 @@ void setup() {
   const String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
   server::Response r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), force ? nullptr : rtcEtag);
   JsonDocument state;
+  // The server counts its wake time from now: what the drawing takes (a
+  // panel refresh is ~20 s) comes off it, so a display on the clock wakes on
+  // its mark, not that much after.
+  const uint32_t askedAt = millis();
+  auto sleepFor = [&](uint32_t serverSec) {
+    // (and the pause before sleep, hw::sleepFor's PRE_SLEEP_DELAY_MS)
+    const uint32_t spent = (millis() - askedAt + PRE_SLEEP_DELAY_MS + 500) / 1000;
+    return carousel::sleepSec(serverSec > spent ? serverSec - spent : 0, index, plan, now + spent, rtcLastPress, rtcLastChange,
+                              SLEEP_MIN_SEC, SLEEP_MAX_SEC);
+  };
   uint32_t refreshIn = r.refreshIn;
   bool quiet = r.quiet;
   if (r.code == 200) {
@@ -426,7 +436,7 @@ void setup() {
     // still needs a redraw, from the copy kept.
     if (quiet == rtcQuiet) {
       LOGF("Screen %s unchanged\n", screenId.c_str());
-      sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+      sleepNow(sleepFor(refreshIn));
     }
     if (deserializeJson(state, store::readText(cache.c_str()))) {
       rtcEtag[0] = 0;  // no copy: fetch it whole next time
@@ -469,7 +479,7 @@ void setup() {
   snprintf(rtcScreen, sizeof(rtcScreen), "%s", screenId.c_str());
   snprintf(rtcEtag, sizeof(rtcEtag), "%s", (state["etag"] | r.etag.c_str()));
   rtcQuiet = quiet;
-  sleepNow(carousel::sleepSec(refreshIn, index, plan, now, rtcLastPress, rtcLastChange, SLEEP_MIN_SEC, SLEEP_MAX_SEC));
+  sleepNow(sleepFor(refreshIn));
 }
 
 void loop() {
