@@ -4,6 +4,7 @@
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <esp_arduino_version.h>
 
 #include "app/store.h"
 #include "config.h"
@@ -39,7 +40,12 @@ bool viaMdns() {
   }
   const int n = MDNS.queryService(SERVER_MDNS_NAME, "tcp");
   if (n > 0) {
+    // Arduino-ESP32 3.x renamed MDNSResponder::IP() to address().
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
     g_host = MDNS.address(0).toString();
+#else
+    g_host = MDNS.IP(0).toString();
+#endif
     g_port = MDNS.port(0);
     LOGF("[server] mDNS hit: %s:%u (service count=%d)\n", g_host.c_str(), g_port, n);
     return true;
