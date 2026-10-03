@@ -53,6 +53,11 @@ struct Info {
   const char* firmware;  // FIRMWARE_VERSION
   const char* mac;
   const char* wifi;      // network and signal
+  // Buttons that go straight to a screen: the screens' titles.
+  bool direct = false;
+  const char* left = "";
+  const char* middle = "";
+  const char* right = "";
 };
 void info(draw::Gfx& g, const Info& i);
 

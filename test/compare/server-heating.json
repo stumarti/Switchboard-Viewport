@@ -1,9 +1,5 @@
 {
- "screen": "heating",
- "etag": "\"ac49e96ebc7a85e6dc2e\"",
- "refreshInSec": 1800,
  "quiet": false,
- "generatedAt": "2026-10-03T15:39:57.769Z",
  "data": {
   "kind": "sections",
   "title": "Heating",

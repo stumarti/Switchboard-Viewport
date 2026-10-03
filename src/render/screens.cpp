@@ -367,11 +367,13 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     draw::textCentered(g, heatOn ? "ON" : "OFF", 0, HP_LEFT_W, 200);
     draw::face(g, draw::BOLD24, GxEPD_WHITE);
     if (!d["current"].isNull()) {
-      snprintf(buf, sizeof(buf), "%.1fC now", d["current"].as<float>());
+      char v[16];
+      snprintf(buf, sizeof(buf), "%sC now", draw::fixed(v, sizeof(v), d["current"].as<float>(), 1));
       draw::textCentered(g, buf, 0, HP_LEFT_W, 250);
     }
     if (!d["target"].isNull()) {
-      snprintf(buf, sizeof(buf), "Set %.1fC", d["target"].as<float>());
+      char v[16];
+      snprintf(buf, sizeof(buf), "Set %sC", draw::fixed(v, sizeof(v), d["target"].as<float>(), 1));
       draw::textCentered(g, buf, 0, HP_LEFT_W, 282);
     }
     snprintf(buf, sizeof(buf), "%d of %d calling", d["calling"] | 0, d["total"] | 0);
@@ -409,10 +411,11 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     draw::face(g, draw::BOLD24, active ? GxEPD_RED : GxEPD_BLACK);
     draw::text(g, RPANEL_X, y + 14, str(z["name"]));
     char temps[40] = "";
-    if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%.1fC", z["current"].as<float>());
+    char v[16];
+    if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%sC", draw::fixed(v, sizeof(v), z["current"].as<float>(), 1));
     if (!z["target"].isNull()) {
       const size_t n = strlen(temps);
-      snprintf(temps + n, sizeof(temps) - n, "  set %.0fC", z["target"].as<float>());
+      snprintf(temps + n, sizeof(temps) - n, "  set %sC", draw::fixed(v, sizeof(v), z["target"].as<float>(), 0));
     }
     draw::face(g, draw::REG18, GxEPD_BLACK);
     draw::textRight(g, temps, TBAR_X + TBAR_W, y + 14);
@@ -664,10 +667,20 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
     draw::face(g, draw::BOLD24, draw::color(r.color));
     draw::text(g, b.x + 42, y + 42, v);
     if (!strcmp(r.key, "solarToday") && !d["solarPct"].isNull()) {
+      // Beside the value: "64% of predicted" where it fits, else "64%".
+      const int valueEnd = g.getCursorX() + 8, right = b.x + b.w - 8;
       char pct[32];
-      snprintf(pct, sizeof(pct), "%d%% of predicted", d["solarPct"].as<int>());
       draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::textRight(g, pct, b.x + b.w - 8, y + 42);
+      for (const char* fmt : {"%d%% of predicted", "%d%%"}) {
+        snprintf(pct, sizeof(pct), fmt, d["solarPct"].as<int>());
+        int16_t bx, by;
+        uint16_t w, h;
+        g.getTextBounds(pct, 0, 0, &bx, &by, &w, &h);
+        if (valueEnd + static_cast<int>(w) <= right) {
+          draw::textRight(g, pct, right, y + 42);
+          break;
+        }
+      }
     }
     g.drawFastHLine(b.x + 8, y + 54, b.w - 16, GxEPD_BLACK);
     y += 60;

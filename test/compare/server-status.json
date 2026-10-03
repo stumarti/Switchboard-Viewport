@@ -1,9 +1,5 @@
 {
- "screen": "status",
- "etag": "\"51f390daebcbbcf7e537\"",
- "refreshInSec": 1800,
  "quiet": false,
- "generatedAt": "2026-10-03T15:39:57.642Z",
  "data": {
   "kind": "sections",
   "title": "Status",
@@ -25,8 +21,8 @@
       "uvText": "3.0",
       "rain": {
        "state": "starts",
-       "time": "19:00",
-       "text": "Rain at 19:00"
+       "time": "20:00",
+       "text": "Rain at 20:00"
       },
       "solar": {
        "value": 18.5,
@@ -99,7 +95,7 @@
       "socText": "87 %",
       "status": "charging",
       "statusText": "Charging",
-      "eta": "full at 16:49",
+      "eta": "full at 17:41",
       "color": 4,
       "low": false,
       "critical": false
@@ -229,30 +225,30 @@
       "lines": [
        {
         "day": "Today",
-        "time": "10:30",
+        "time": "11:30",
         "title": "School run",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 10:30 · School run"
+        "text": "Today 11:30 · School run"
        },
        {
         "day": "Today",
-        "time": "16:30",
+        "time": "17:30",
         "title": "Weekly planning",
         "allDay": false,
         "color": 5,
         "description": "Agenda in the shared drive, brin...",
-        "text": "Today 16:30 · Weekly planning"
+        "text": "Today 17:30 · Weekly planning"
        },
        {
         "day": "Today",
-        "time": "20:00",
+        "time": "21:00",
         "title": "Football practice",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 20:00 · Football practice"
+        "text": "Today 21:00 · Football practice"
        },
        {
         "day": "Today",
