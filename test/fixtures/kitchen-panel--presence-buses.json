@@ -1,0 +1,173 @@
+{
+ "screen": "presence",
+ "etag": "\"3c5d53616cb3b3505768\"",
+ "refreshInSec": 240,
+ "quiet": false,
+ "generatedAt": "2026-10-03T15:39:57.974Z",
+ "data": {
+  "kind": "sections",
+  "title": "Presence",
+  "template": "sidebar",
+  "columns": [
+   [
+    {
+     "id": "presence-rooms",
+     "type": "roomList",
+     "title": "",
+     "data": {
+      "byFloor": true,
+      "rooms": [
+       {
+        "name": "Main Bed",
+        "icon": "bed",
+        "floor": "upstairs",
+        "temperature": 21.3,
+        "humidity": 58
+       },
+       {
+        "name": "Guest",
+        "icon": "bed",
+        "floor": "upstairs",
+        "temperature": 18.8,
+        "humidity": 52
+       },
+       {
+        "name": "Bathroom",
+        "icon": "shower",
+        "floor": "upstairs",
+        "temperature": 23.1,
+        "humidity": 71
+       },
+       {
+        "name": "Office",
+        "icon": "desk",
+        "floor": "upstairs",
+        "temperature": 19.5,
+        "humidity": 55
+       },
+       {
+        "name": "Living",
+        "icon": "sofa",
+        "floor": "downstairs",
+        "temperature": 20.5,
+        "humidity": 54
+       },
+       {
+        "name": "Kitchen",
+        "icon": "fridge-outline",
+        "floor": "downstairs",
+        "temperature": 20.1,
+        "humidity": 60
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": "presence-people",
+     "type": "people",
+     "title": "",
+     "data": {
+      "people": [
+       {
+        "name": "Alex",
+        "home": true,
+        "state": "Home",
+        "color": 4
+       },
+       {
+        "name": "Sam",
+        "home": false,
+        "state": "Away",
+        "color": 1
+       },
+       {
+        "name": "Jo",
+        "home": true,
+        "state": "Home",
+        "color": 4
+       }
+      ]
+     }
+    },
+    {
+     "id": "presence-media",
+     "type": "media",
+     "title": "",
+     "data": {
+      "players": [
+       {
+        "room": "Living room",
+        "icon": "",
+        "app": "Spotify",
+        "title": "Clair de Lune",
+        "artist": "Claude Debussy",
+        "art": "/api/media_player_proxy/media_player.living_room_speaker?cache=moon",
+        "playing": true
+       }
+      ]
+     }
+    },
+    {
+     "id": "presence-transport",
+     "type": "transport",
+     "title": "",
+     "data": {
+      "routes": [
+       {
+        "name": "C3 Maynooth",
+        "stop": "Stop 1234",
+        "icon": "bus",
+        "color": 4,
+        "departures": [
+         {
+          "time": "22:00",
+          "minutes": 11,
+          "urgent": false,
+          "color": 4,
+          "text": "11 min",
+          "live": true
+         },
+         {
+          "time": "22:25",
+          "minutes": 36,
+          "urgent": false,
+          "color": 1,
+          "text": "36 min",
+          "live": false
+         }
+        ]
+       },
+       {
+        "name": "C3 later",
+        "stop": "",
+        "icon": "bus",
+        "color": 5,
+        "departures": [
+         {
+          "time": "22:00",
+          "minutes": 11,
+          "urgent": false,
+          "color": 5,
+          "text": "11 min",
+          "live": true
+         },
+         {
+          "time": "22:25",
+          "minutes": 36,
+          "urgent": false,
+          "color": 1,
+          "text": "36 min",
+          "live": false
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": 240
+ }
+}

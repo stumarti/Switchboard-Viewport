@@ -991,12 +991,15 @@ int transport(Gfx& g, JsonObjectConst d, Box b) {
   for (JsonObjectConst t : d["routes"].as<JsonArrayConst>()) {
     const uint16_t c = col(t["color"], 4);
     draw::icon(g, icons::named(str(t["icon"], "bus"), 24), b.x + 8, y + 6, c, Mode::Ink);
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 20, str(t["name"]));
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 40, str(t["stop"]));
     int rx = b.x + b.w - 8;
     JsonArrayConst deps = t["departures"];
+    // The route and stop stop short of the departures (76 px each).
+    const int nameW = rx - static_cast<int>(deps.size()) * 76 - (b.x + 40) - 4;
+    char fitted[96];
+    draw::face(g, draw::BOLD18, GxEPD_BLACK);
+    draw::text(g, b.x + 40, y + 20, draw::fit(g, fitted, sizeof(fitted), str(t["name"]), nameW));
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 40, y + 40, draw::fit(g, fitted, sizeof(fitted), str(t["stop"]), nameW));
     for (int i = static_cast<int>(deps.size()) - 1; i >= 0; --i) {
       JsonObjectConst x = deps[i];
       draw::face(g, draw::REG18, GxEPD_BLACK);

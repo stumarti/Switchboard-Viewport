@@ -53,6 +53,8 @@ void cut(char* out, size_t cap, const char* src, int limit, int keep);
 // dtostrf(v, decimals + 2, decimals)): half away from zero, and padded on
 // the left to that width, so String(5.0f, 0) is " 5".
 const char* fixed(char* out, size_t cap, float v, int decimals);
+// `s` cut, with "...", to fit `maxW` px in the current face.
+const char* fit(Gfx& g, char* out, size_t cap, const char* s, int maxW);
 
 // --- Icons ---------------------------------------------------------------------
 //
