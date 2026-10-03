@@ -5,12 +5,12 @@
 Switchboard Viewport turns a **Seeed reTerminal E1002** into a Home Assistant wall display. The E1002 has a 7.3" Spectra 6 colour e-ink panel, three buttons and a battery. The display shows the weather, energy, heating, security, calendar, who's home and the next bus, and it reads from across the room like a printed page. There's no glow, no fan, no cable and no tablet to keep charged.
 
 <p>
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/kitchen-panel-status.png" width="400" alt="Status: weather, energy, the home battery, what needs attention, today">
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/kitchen-panel-heating.png" width="400" alt="Heating: each zone against its setpoint">
+  <img src="docs/images/status.png" width="400" alt="Status: weather, energy, the home battery, what needs attention, today">
+  <img src="docs/images/heating.png" width="400" alt="Heating: each zone against its setpoint">
 </p>
 <p>
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/kitchen-panel-energy.png" width="400" alt="Energy: solar against the forecast, and where the power went">
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/kitchen-panel-security.png" width="400" alt="Security: the alarm, doors and windows, motion and cameras">
+  <img src="docs/images/energy.png" width="400" alt="Energy: solar against the forecast, and where the power went">
+  <img src="docs/images/security.png" width="400" alt="Security: the alarm, doors and windows, motion and cameras">
 </p>
 
 **[⚡ Flash it from your browser](https://stumarti.github.io/Switchboard/)** · **[Set one up](https://stumarti.github.io/Switchboard/manual/viewport/setup.html)** · **[See every screen](https://stumarti.github.io/Switchboard/manual/viewport/screens.html)**
@@ -36,8 +36,8 @@ Build its screens in [Switchboard Server](https://github.com/stumarti/Switchboar
 - **Calendar, people, now playing, room temperatures, bus and train departures, announcements**, plus a meeting room sign and a room finder for the office.
 
 <p>
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/kitchen-panel-presence.png" width="400" alt="Who's home, room temperatures, now playing and the next buses">
-  <img src="https://raw.githubusercontent.com/stumarti/Switchboard/main/docs/manual/images/viewport/device/boardroom-meeting.png" width="400" alt="A meeting room sign">
+  <img src="docs/images/presence.png" width="400" alt="Who's home, room temperatures, now playing and the next buses">
+  <img src="docs/images/meeting-room.png" width="400" alt="A meeting room sign">
 </p>
 
 ## Easy to live with
