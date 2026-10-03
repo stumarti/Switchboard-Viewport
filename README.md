@@ -16,7 +16,7 @@ Firmware for the **Seeed reTerminal E1002** (7.3" Spectra 6 colour e-paper, ESP3
 - **Updates over Wi-Fi** from the server, checked by SHA-256 and board. A new version rolls back by itself if it can't reach the server.
 - **Error screens** for no Wi-Fi, no Switchboard Server, no Home Assistant, and a flat battery.
 
-Read the manual's [viewport section](https://stumarti.github.io/Switchboard/manual/viewport/setup) to set one up.
+Read the manual's [viewport section](https://stumarti.github.io/Switchboard/manual/viewport/setup.html) to set one up.
 
 ## Build
 
