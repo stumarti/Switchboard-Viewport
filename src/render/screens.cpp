@@ -326,13 +326,18 @@ int calendar(Gfx& g, JsonObjectConst s, JsonObjectConst d, Box b) {
     const char* t = str(ev["title"]);
     if (static_cast<int>(strlen(t)) > budget && budget > 3) draw::cut(title, sizeof(title), t, budget, budget - 1);
     else snprintf(title, sizeof(title), "%s", t);
-    g.print(title);
+    // In a column that ends before the panel's edge (the sidebar), cut to
+    // fit rather than run over the divider; at the edge, the panel clips it
+    // as it always did.
+    const int right = b.x + b.w >= draw::PANEL_W ? 1 << 14 : b.x + b.w - 4;
+    char fitted[160];
+    g.print(draw::fit(g, fitted, sizeof(fitted), title, right - titleX));
     const char* desc = str(ev["description"]);
     if (*desc) {
-      char dbuf[96];
+      char dbuf[96], dfit[96];
       draw::cut(dbuf, sizeof(dbuf), desc, 84, 81);
       draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::text(g, titleX, y + 33, dbuf);
+      draw::text(g, titleX, y + 33, draw::fit(g, dfit, sizeof(dfit), dbuf, right - titleX));
     }
     y += RC_LINE_H + 5;
   }
