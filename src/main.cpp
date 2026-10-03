@@ -23,10 +23,14 @@
 #include <WiFi.h>
 #include <time.h>
 
+#include <algorithm>
+#include <vector>
+
 #include "app/carousel.h"
 #include "app/display.h"
 #include "app/hw.h"
 #include "app/ota.h"
+#include "app/ota_policy.h"
 #include "app/store.h"
 #include "app/theme.h"
 #include "config.h"
@@ -61,8 +65,23 @@ RTC_DATA_ATTR bool rtcQuiet = false;
 RTC_DATA_ATTR int64_t rtcLastPress = 0;
 RTC_DATA_ATTR int64_t rtcLastChange = 0;
 RTC_DATA_ATTR uint32_t rtcSleep = 0;  // the last plan, for wakes that can't ask
+// The layout's refresh interval and quiet hours, from the last bundle: how
+// long an error or the charge screen sleeps (the panel's 30 minutes by day,
+// 60 at night), even when the server can't be asked.
+RTC_DATA_ATTR uint32_t rtcPlanSec = 0;
+RTC_DATA_ATTR uint32_t rtcQuietSec = 0;
+RTC_DATA_ATTR int8_t rtcQuietFrom = -1, rtcQuietTo = -1;
+
+int localHour();
+
+uint32_t planSleep() {
+  const int h = localHour();
+  if (rtcQuietSec && otapolicy::inWindow(h, rtcQuietFrom, rtcQuietTo)) return rtcQuietSec;
+  return rtcPlanSec ? rtcPlanSec : SLEEP_ERROR_SEC;
+}
 
 int g_batt = -1;
+float g_volts = NAN;
 
 int64_t nowEpoch() {
   const time_t t = time(nullptr);
@@ -101,16 +120,16 @@ bool alreadyShowing(Panel p, const char* key) { return rtcPanel == p && !strcmp(
   hw::sleepFor(sec);
 }
 
-// The kitchen panel's error screen (only redrawn when the error changes).
-[[noreturn]] void fail(const char* icon, const char* title, const char* detail, uint32_t sleepSec = SLEEP_ERROR_SEC) {
+// The kitchen panel's error screen. Like the panel, it's drawn on every
+// wake that fails, so its date line says when it last tried; then sleep for
+// the usual interval.
+[[noreturn]] void fail(const char* icon, const char* title, const char* detail) {
   LOGF("Error: %s (%s)\n", title, detail);
-  if (!alreadyShowing(Panel::Error, title)) {
-    char when[40];
-    localTime(when, sizeof(when), "%a %d %b %Y  %H:%M", "--:--");
-    display::show([&](draw::Gfx& g) { sys::error(g, icon, title, detail, when); });
-    remember(Panel::Error, title);
-  }
-  sleepNow(sleepSec);
+  char when[40];
+  localTime(when, sizeof(when), "%a %d %b %Y  %H:%M", "--:--");
+  display::show([&](draw::Gfx& g) { sys::error(g, icon, title, detail, when); });
+  remember(Panel::Error, title);
+  sleepNow(planSleep());
 }
 
 [[noreturn]] void serverDown() {
@@ -174,8 +193,19 @@ bool fetchBundle(JsonDocument& bundle) {
   const char* name = bundle["name"] | "Not paired yet";
   const char* layout = bundle["dashboard"]["name"] | "";
   const int refresh = bundle["layout"]["refreshIntervalMin"] | 30;
+  // With direct buttons, each says which screen it shows.
+  const bool direct = !strcmp(bundle["layout"]["carousel"]["buttons"] | "step", "direct");
+  std::vector<String> titles;
+  for (JsonObjectConst s : bundle["layout"]["screens"].as<JsonArrayConst>())
+    if (s["enabled"] | true) titles.push_back(s["title"] | "");
+  auto title = [&](int i) { return titles.empty() ? "" : titles[i < 0 ? titles.size() - 1 : std::min<size_t>(i, titles.size() - 1)].c_str(); };
   display::show([&](draw::Gfx& g) {
-    sys::info(g, {refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()});
+    sys::Info in{refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()};
+    in.direct = direct;
+    in.left = title(-1);
+    in.middle = title(0);
+    in.right = title(1);
+    sys::info(g, in);
   });
   remember(Panel::Info, "");
   sleepNow(rtcSleep ? rtcSleep : SLEEP_DEFAULT_SEC);
@@ -223,14 +253,15 @@ void setup() {
   }
 
   // ---- Critical battery: no Wi-Fi, no refresh ----
-  g_batt = hw::batteryPercent();
+  g_volts = hw::batteryVoltage();
+  g_batt = hw::batteryPercent(g_volts);
   if (g_batt <= BATT_CRITICAL_PCT) {
     LOGF("Battery critical (%d%%)\n", g_batt);
     if (rtcPanel != Panel::Charge) {
       display::show([](draw::Gfx& g) { sys::charge(g, g_batt); });
       remember(Panel::Charge, "");
     }
-    sleepNow(SLEEP_DEFAULT_SEC);
+    sleepNow(planSleep());
   }
 
   // ---- Held buttons that need no network ----
@@ -251,7 +282,7 @@ void setup() {
   {
     float t = NAN, h = NAN;
     hw::climate(t, h);
-    server::setHealth({g_batt, t, h});
+    server::setHealth({g_batt, t, h, g_volts});
   }
   if (!wifi::connect()) {
     // Never joined at all: the saved network must be wrong, so set up again.
@@ -289,6 +320,14 @@ void setup() {
   }
 
   JsonObjectConst layout = bundle["layout"];
+  {
+    rtcPlanSec = (layout["refreshIntervalMin"] | 30) * 60u;
+    JsonObjectConst q = layout["quietHours"];
+    const bool on = (q["enabled"] | false) && (q["start"] | 0) != (q["end"] | 0);
+    rtcQuietSec = on ? (q["intervalMin"] | 60) * 60u : 0;
+    rtcQuietFrom = on ? static_cast<int8_t>(q["start"] | 23) : -1;
+    rtcQuietTo = on ? static_cast<int8_t>(q["end"] | 6) : -1;
+  }
   if (!(bundle["assigned"] | false)) {
     if (!alreadyShowing(Panel::NotSetUp, "")) {
       const String page = pageUrl();
@@ -317,6 +356,7 @@ void setup() {
   carousel::Plan plan;
   plan.mode = carousel::modeOf(layout["carousel"]["mode"] | "stay");
   plan.everyMin = layout["carousel"]["everyMin"] | 30;
+  plan.direct = !strcmp(layout["carousel"]["buttons"] | "step", "direct");
   const int64_t now = nowEpoch();
   const int index = carousel::pick(static_cast<int>(ids.size()), current, carouselWake(wake), plan, now, rtcLastPress, rtcLastChange);
   if (buttonWake(wake)) rtcLastPress = now;
@@ -351,8 +391,10 @@ void setup() {
   } else if (r.code == 409 || r.code == 502) {
     JsonDocument err;
     deserializeJson(err, r.body);
-    const char* why = err["error"] | "Switchboard Server can't reach it";
-    fail("vx_cloud_off", "Can't reach Home Assistant", why);
+    // The panel's words: a rejected token, or no answer.
+    const String why = err["error"] | "";
+    fail("vx_cloud_off", "Can't reach Home Assistant",
+         why.indexOf("401") >= 0 ? "Authentication failed - check token" : "No response from Home Assistant");
   } else if (r.code == 404) {
     // The layout lost that screen: start from the first next time.
     rtcScreen[0] = 0;

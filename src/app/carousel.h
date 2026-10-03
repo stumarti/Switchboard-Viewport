@@ -10,6 +10,9 @@
 //   returnFirst  go back to the first screen `everyMin` minutes after the
 //                last press (the kitchen panel: Heating or Security until
 //                the next refresh, then Status again)
+// The buttons step (`step`, the default), or each goes straight to one
+// screen (`direct`, as the kitchen panel's did): middle the first, right the
+// second, left the last.
 // =============================================================================
 #pragma once
 #include <stdint.h>
@@ -30,6 +33,7 @@ Mode modeOf(const char* s);
 struct Plan {
   Mode mode = Mode::Stay;
   uint32_t everyMin = 30;
+  bool direct = false;  // buttons go straight to a screen
 };
 
 // The screen to show (an index into the enabled screens) for this wake.

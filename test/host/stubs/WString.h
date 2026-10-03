@@ -90,10 +90,44 @@ class String {
 
  private:
   static int pos(size_t p) { return p == std::string::npos ? -1 : static_cast<int>(p); }
-  static std::string fmt(double v, unsigned d) {
-    char b[64];
-    snprintf(b, sizeof(b), "%.*f", static_cast<int>(d), v);
-    return b;
+  // As Arduino-ESP32 2.x's String(float, decimals): dtostrf(v, decimals + 2,
+  // decimals), which rounds half away from zero and pads on the left to the
+  // width (String(5.0f, 0) is " 5"), unlike printf.
+  static std::string fmt(double number, unsigned prec) {
+    if (number != number) return "nan";
+    if (number - number != 0) return "inf";
+    std::string out;
+    int fillme = static_cast<int>(prec) + 2;
+    if (prec > 0) fillme -= prec + 1;
+    bool negative = false;
+    if (number < 0.0) {
+      negative = true;
+      fillme--;
+      number = -number;
+    }
+    double rounding = 2.0;
+    for (unsigned i = 0; i < prec; ++i) rounding *= 10.0;
+    number += 1.0 / rounding;
+    double tenpow = 1.0;
+    int digitcount = 1;
+    while (number >= 10.0 * tenpow) {
+      tenpow *= 10.0;
+      digitcount++;
+    }
+    number /= tenpow;
+    fillme -= digitcount;
+    while (fillme-- > 0) out += ' ';
+    if (negative) out += '-';
+    digitcount += prec;
+    while (digitcount-- > 0) {
+      int digit = static_cast<int>(number);
+      if (digit > 9) digit = 9;
+      out += static_cast<char>('0' | digit);
+      if (digitcount == static_cast<int>(prec) && prec > 0) out += '.';
+      number -= digit;
+      number *= 10.0;
+    }
+    return out;
   }
   std::string s_;
 };

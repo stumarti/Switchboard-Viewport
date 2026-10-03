@@ -47,6 +47,20 @@ static void kitchenPanel() {
   CHECK_EQ(carousel::pick(3, 2, Wake::Timer, p, 0, 0, 0), 0);
 }
 
+static void directButtons() {
+  // The kitchen panel's buttons: middle Status, right Heating, left Security,
+  // from whichever screen is showing.
+  Plan p{Mode::ReturnFirst, 30, true};
+  for (int from = 0; from < 3; ++from) {
+    CHECK_EQ(carousel::pick(3, from, Wake::Refresh, p, 0, 0, 0), 0);
+    CHECK_EQ(carousel::pick(3, from, Wake::Next, p, 0, 0, 0), 1);
+    CHECK_EQ(carousel::pick(3, from, Wake::Prev, p, 0, 0, 0), 2);
+  }
+  // One screen: every button shows it.
+  CHECK_EQ(carousel::pick(1, 0, Wake::Next, p, 0, 0, 0), 0);
+  CHECK_EQ(carousel::pick(1, 0, Wake::Prev, p, 0, 0, 0), 0);
+}
+
 static void advancing() {
   Plan p{Mode::Advance, 10};
   const int64_t t = 1'700'000'000;
@@ -73,6 +87,7 @@ static void staying() {
 int main() {
   buttons();
   kitchenPanel();
+  directButtons();
   advancing();
   staying();
   printf("%d checks, %d failed\n", g_run, g_failed);

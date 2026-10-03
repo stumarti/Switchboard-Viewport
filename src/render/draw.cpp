@@ -101,6 +101,47 @@ int textWrapped(Gfx& g, const char* s, int x, int y, int w, int lineH, int maxLi
   return lines;
 }
 
+const char* fixed(char* out, size_t cap, float value, int prec) {
+  if (!cap) return out;
+  double number = value;
+  if (number != number) return snprintf(out, cap, "nan"), out;
+  if (number - number != 0) return snprintf(out, cap, "inf"), out;
+  char buf[48];
+  size_t n = 0;
+  int fillme = prec + 2;
+  if (prec > 0) fillme -= prec + 1;
+  const bool negative = number < 0.0;
+  if (negative) {
+    fillme--;
+    number = -number;
+  }
+  double rounding = 2.0;
+  for (int i = 0; i < prec; ++i) rounding *= 10.0;
+  number += 1.0 / rounding;
+  double tenpow = 1.0;
+  int digitcount = 1;
+  while (number >= 10.0 * tenpow && digitcount < 20) {
+    tenpow *= 10.0;
+    digitcount++;
+  }
+  number /= tenpow;
+  fillme -= digitcount;
+  while (fillme-- > 0 && n < sizeof(buf) - 1) buf[n++] = ' ';
+  if (negative && n < sizeof(buf) - 1) buf[n++] = '-';
+  digitcount += prec;
+  while (digitcount-- > 0 && n < sizeof(buf) - 2) {
+    int digit = static_cast<int>(number);
+    if (digit > 9) digit = 9;
+    buf[n++] = static_cast<char>('0' | digit);
+    if (digitcount == prec && prec > 0) buf[n++] = '.';
+    number -= digit;
+    number *= 10.0;
+  }
+  buf[n] = 0;
+  snprintf(out, cap, "%s", buf);
+  return out;
+}
+
 void cut(char* out, size_t cap, const char* src, int limit, int keep) {
   const size_t len = strlen(src);
   if (static_cast<int>(len) <= limit) {

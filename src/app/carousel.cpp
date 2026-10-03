@@ -14,6 +14,14 @@ int pick(int count, int current, Wake wake, const Plan& plan, int64_t now, int64
   if (count <= 0) return 0;
   if (current < 0 || current >= count) current = 0;
   const int64_t every = static_cast<int64_t>(plan.everyMin) * 60;
+  if (plan.direct) {
+    switch (wake) {
+      case Wake::Refresh: return 0;
+      case Wake::Next: return count > 1 ? 1 : 0;
+      case Wake::Prev: return count - 1;
+      default: break;
+    }
+  }
   switch (wake) {
     case Wake::Next:
       return (current + 1) % count;

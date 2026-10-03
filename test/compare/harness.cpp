@@ -29,6 +29,9 @@ bool fetchAllAndCompare();
 void fetchHeatingPage();
 
 static JsonDocument g_house;
+// HOUSE and STATE_DIR pick another captured house and its server states
+// (scenarios.js); by default the ones checked in here.
+static std::string g_stateDir = "test/compare";
 
 static std::string slurp(const char* path) {
   FILE* f = fopen(path, "rb");
@@ -121,13 +124,14 @@ int HTTPClient::POST(const String& body) {
 // --- The comparison ----------------------------------------------------------------
 static int compare(const char* name, const Canvas& panel, const std::string& outDir) {
   JsonDocument doc;
-  deserializeJson(doc, slurp((std::string("test/compare/server-") + name + ".json").c_str()));
+  deserializeJson(doc, slurp((g_stateDir + "/server-" + name + ".json").c_str()));
   screens::Ctx ctx;
   struct tm lt;
   localtime_r(&g_now, &lt);
   strftime(ctx.time, sizeof(ctx.time), "%H:%M", &lt);
   ctx.battPct = batteryPercent(readBatteryVoltage());
   ctx.markCount = 0;  // the panel had no carousel marks
+  ctx.quiet = doc["quiet"] | false;
   Canvas ours;
   screens::drawScreen(ours, doc["data"], ctx);
 
@@ -147,7 +151,10 @@ static int compare(const char* name, const Canvas& panel, const std::string& out
 
 int main(int argc, char** argv) {
   const std::string out = argc > 1 ? argv[1] : "test/compare/out";
-  if (deserializeJson(g_house, slurp("test/compare/house.json"))) {
+  if (getenv("STATE_DIR")) g_stateDir = getenv("STATE_DIR");
+  if (getenv("BATT_MV")) g_batteryMilliVolts = atoi(getenv("BATT_MV"));
+  const char* house = getenv("HOUSE") ? getenv("HOUSE") : "test/compare/house.json";
+  if (deserializeJson(g_house, slurp(house))) {
     fprintf(stderr, "house.json missing or bad\n");
     return 2;
   }
@@ -158,11 +165,17 @@ int main(int argc, char** argv) {
   fetchAllAndCompare();
   drawDashboard();
   int total = compare("status", display, out);
+  // A Heating button wake: the panel starts afresh (deep sleep keeps none
+  // of this), so only what fetchHeatingPage() reads is there to draw.
+  currentHeatingTemp = NAN;
+  currentHeatingTarget = NAN;
   fetchHeatingPage();
   drawHeatingPage();
   total += compare("heating", display, out);
   drawSecurityPage();
   total += compare("security", display, out);
+
+  if (getenv("SCREENS_ONLY")) return total ? 1 : 0;
 
   // The error and charge screens the firmware keeps as they were.
   auto same = [&](const char* name, const std::function<void(Canvas&)>& ours) {

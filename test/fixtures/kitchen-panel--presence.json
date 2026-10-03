@@ -1,6 +1,9 @@
 {
+ "screen": "presence",
+ "etag": "\"3c5d53616cb3b3505768\"",
+ "refreshInSec": 240,
  "quiet": false,
- "generatedAt": "2026-10-03T11:18:30.761Z",
+ "generatedAt": "2026-10-03T15:39:57.974Z",
  "data": {
   "kind": "sections",
   "title": "Presence",
@@ -113,20 +116,20 @@
      "data": {
       "routes": [
        {
-        "name": "42 \u00b7 City Centre",
+        "name": "42 · City Centre",
         "stop": "",
         "icon": "bus",
         "color": 4,
         "departures": [
          {
-          "time": "11:05",
-          "minutes": 0,
+          "time": "15:42",
+          "minutes": 3,
           "urgent": true,
           "color": 2,
-          "text": "0 min"
+          "text": "3 min"
          },
          {
-          "time": "11:38",
+          "time": "15:59",
           "minutes": 20,
           "urgent": false,
           "color": 4,
@@ -135,20 +138,20 @@
         ]
        },
        {
-        "name": "Overground \u00b7 Waterloo",
+        "name": "Overground · Waterloo",
         "stop": "",
         "icon": "train",
         "color": 5,
         "departures": [
          {
-          "time": "11:27",
+          "time": "15:48",
           "minutes": 9,
           "urgent": false,
           "color": 5,
           "text": "9 min"
          },
          {
-          "time": "11:57",
+          "time": "16:18",
           "minutes": 39,
           "urgent": false,
           "color": 5,

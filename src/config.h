@@ -43,7 +43,7 @@
 // departures turning imminent...); these are the fallbacks for when it can't.
 // -----------------------------------------------------------------------------
 const uint32_t SLEEP_DEFAULT_SEC   = 30 * 60;  // no answer from the server yet
-const uint32_t SLEEP_ERROR_SEC     = 15 * 60;  // Wi-Fi / server / HA failed
+const uint32_t SLEEP_ERROR_SEC     = 30 * 60;  // Wi-Fi / server / HA failed, before the server has said
 const uint32_t SLEEP_PENDING_SEC   = 2 * 60;   // waiting to be approved
 const uint32_t SLEEP_MIN_SEC       = 60;       // never sooner (panel protection)
 const uint32_t SLEEP_MAX_SEC       = 12 * 3600;  // safety refresh, at the latest

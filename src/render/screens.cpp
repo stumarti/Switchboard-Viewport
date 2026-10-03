@@ -367,11 +367,13 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     draw::textCentered(g, heatOn ? "ON" : "OFF", 0, HP_LEFT_W, 200);
     draw::face(g, draw::BOLD24, GxEPD_WHITE);
     if (!d["current"].isNull()) {
-      snprintf(buf, sizeof(buf), "%.1fC now", d["current"].as<float>());
+      char v[16];
+      snprintf(buf, sizeof(buf), "%sC now", draw::fixed(v, sizeof(v), d["current"].as<float>(), 1));
       draw::textCentered(g, buf, 0, HP_LEFT_W, 250);
     }
     if (!d["target"].isNull()) {
-      snprintf(buf, sizeof(buf), "Set %.1fC", d["target"].as<float>());
+      char v[16];
+      snprintf(buf, sizeof(buf), "Set %sC", draw::fixed(v, sizeof(v), d["target"].as<float>(), 1));
       draw::textCentered(g, buf, 0, HP_LEFT_W, 282);
     }
     snprintf(buf, sizeof(buf), "%d of %d calling", d["calling"] | 0, d["total"] | 0);
@@ -409,10 +411,11 @@ int heating(Gfx& g, JsonObjectConst d, Box b) {
     draw::face(g, draw::BOLD24, active ? GxEPD_RED : GxEPD_BLACK);
     draw::text(g, RPANEL_X, y + 14, str(z["name"]));
     char temps[40] = "";
-    if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%.1fC", z["current"].as<float>());
+    char v[16];
+    if (!z["current"].isNull()) snprintf(temps, sizeof(temps), "%sC", draw::fixed(v, sizeof(v), z["current"].as<float>(), 1));
     if (!z["target"].isNull()) {
       const size_t n = strlen(temps);
-      snprintf(temps + n, sizeof(temps) - n, "  set %.0fC", z["target"].as<float>());
+      snprintf(temps + n, sizeof(temps) - n, "  set %sC", draw::fixed(v, sizeof(v), z["target"].as<float>(), 0));
     }
     draw::face(g, draw::REG18, GxEPD_BLACK);
     draw::textRight(g, temps, TBAR_X + TBAR_W, y + 14);

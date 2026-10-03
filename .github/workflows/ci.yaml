@@ -48,6 +48,28 @@ jobs:
       - name: Matches the kitchen panel pixel for pixel
         run: ./test/compare/compare.sh
 
+      # The same on many houses (an alarm going off, sensors gone, a frost,
+      # midnight...), with Switchboard Server computing each one.
+      - uses: actions/checkout@v4
+        with:
+          repository: stumarti/Switchboard-Server
+          ref: ${{ github.head_ref || github.ref_name }}
+          path: server
+        continue-on-error: true
+        id: server-same-branch
+      - uses: actions/checkout@v4
+        if: steps.server-same-branch.outcome != 'success'
+        with:
+          repository: stumarti/Switchboard-Server
+          path: server
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Matches it on every scenario
+        run: |
+          (cd server && npm ci --omit=dev)
+          SERVER_DIR=server node test/compare/scenarios.js
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -49,6 +49,10 @@ int textWrapped(Gfx& g, const char* s, int x, int y, int w, int lineH, int maxLi
 // `src` when it's at most `limit` characters, else its first `keep` and
 // "..." — the panel's `if (s.length() > limit) s = s.substring(0, keep) + "..."`.
 void cut(char* out, size_t cap, const char* src, int limit, int keep);
+// A number as the panel's String(v, decimals) wrote it (Arduino-ESP32's
+// dtostrf(v, decimals + 2, decimals)): half away from zero, and padded on
+// the left to that width, so String(5.0f, 0) is " 5".
+const char* fixed(char* out, size_t cap, float v, int decimals);
 
 // --- Icons ---------------------------------------------------------------------
 //

@@ -220,11 +220,23 @@ void info(Gfx& g, const Info& in) {
     const char* longDesc;
     uint16_t longCol;
   };
-  const Entry entries[] = {
+  // Direct buttons (the kitchen panel's): each names its screen, in the
+  // panel's colours for them (its Heating red, its Security green).
+  char leftT[48], rightT[48], midD[64];
+  snprintf(leftT, sizeof(leftT), "%s page", in.left);
+  snprintf(rightT, sizeof(rightT), "%s page", in.right);
+  snprintf(midD, sizeof(midD), "Fetch latest data\nand show %s", in.middle);
+  const Entry stepping[] = {
       {"LEFT", "Previous screen", "Step back through\nthe screens", GxEPD_BLACK, "This screen", "Buttons and\ndevice details", GxEPD_BLUE},
       {"MIDDLE", "Refresh", "Fetch the latest and\nredraw this screen", GxEPD_GREEN, "Wi-Fi setup", "Join another network\nfrom your phone", GxEPD_BLUE},
       {"RIGHT", "Next screen", "Step on through\nthe screens", GxEPD_BLACK, "Clear screen", "Fills the panel white\nNext wake redraws", GxEPD_BLACK},
   };
+  const Entry straight[] = {
+      {"LEFT", leftT, "Show it now", GxEPD_GREEN, "This screen", "Buttons and\ndevice details", GxEPD_BLUE},
+      {"MIDDLE", "Refresh", midD, GxEPD_BLACK, "Wi-Fi setup", "Join another network\nfrom your phone", GxEPD_BLUE},
+      {"RIGHT", rightT, "Show it now", GxEPD_RED, "Clear screen", "Fills the panel white\nNext wake redraws", GxEPD_BLACK},
+  };
+  const Entry* entries = in.direct ? straight : stepping;
   auto lines = [&](const char* s, int x, int y) {
     const char* nl = strchr(s, '\n');
     if (!nl) {

@@ -1,6 +1,9 @@
 {
+ "screen": "security",
+ "etag": "\"2fe028324678ba8a454d\"",
+ "refreshInSec": 1800,
  "quiet": false,
- "generatedAt": "2026-10-03T11:18:30.761Z",
+ "generatedAt": "2026-10-03T15:39:57.832Z",
  "data": {
   "kind": "sections",
   "title": "Security",
@@ -14,8 +17,8 @@
      "data": {
       "state": "disarmed",
       "label": "Disarmed",
-      "since": "06:02",
-      "sinceTime": "06:02",
+      "since": "10:39",
+      "sinceTime": "10:39",
       "summary": true,
       "color": 4,
       "last": {
@@ -37,16 +40,16 @@
         "name": "Front door",
         "open": true,
         "state": "Open",
-        "when": "10:58",
-        "time": "10:58",
+        "when": "15:35",
+        "time": "15:35",
         "color": 2
        },
        {
         "name": "Back door",
         "open": false,
         "state": "Closed",
-        "when": "06:02",
-        "time": "06:02",
+        "when": "10:39",
+        "time": "10:39",
         "color": 4
        }
       ],
@@ -64,56 +67,56 @@
         "name": "Kitchen",
         "open": false,
         "state": "Closed",
-        "when": "09:22",
-        "time": "09:22",
+        "when": "13:59",
+        "time": "13:59",
         "color": 4
        },
        {
         "name": "Living room",
         "open": true,
         "state": "Open",
-        "when": "09:52",
-        "time": "09:52",
+        "when": "14:29",
+        "time": "14:29",
         "color": 2
        },
        {
         "name": "Side windows",
         "open": false,
         "state": "Closed",
-        "when": "10:22",
-        "time": "10:22",
+        "when": "14:59",
+        "time": "14:59",
         "color": 4
        },
        {
         "name": "Bedroom L",
         "open": false,
         "state": "Closed",
-        "when": "07:52",
-        "time": "07:52",
+        "when": "12:29",
+        "time": "12:29",
         "color": 4
        },
        {
         "name": "Bedroom R",
         "open": false,
         "state": "Closed",
-        "when": "07:22",
-        "time": "07:22",
+        "when": "11:59",
+        "time": "11:59",
         "color": 4
        },
        {
         "name": "Office L",
         "open": false,
         "state": "Closed",
-        "when": "08:52",
-        "time": "08:52",
+        "when": "13:29",
+        "time": "13:29",
         "color": 4
        },
        {
         "name": "Office R",
         "open": false,
         "state": "Closed",
-        "when": "08:22",
-        "time": "08:22",
+        "when": "12:59",
+        "time": "12:59",
         "color": 4
        }
       ],
@@ -131,40 +134,40 @@
       "sensors": [
        {
         "name": "Front door",
-        "when": "10:59",
-        "time": "10:59",
+        "when": "15:36",
+        "time": "15:36",
         "on": true,
         "recent": true,
         "color": 5
        },
        {
         "name": "Hall",
-        "when": "10:54",
-        "time": "10:54",
+        "when": "15:31",
+        "time": "15:31",
         "on": false,
         "recent": true,
         "color": 5
        },
        {
         "name": "Landing",
-        "when": "09:27",
-        "time": "09:27",
+        "when": "14:04",
+        "time": "14:04",
         "on": false,
         "recent": false,
         "color": 1
        },
        {
         "name": "Rec. Landing",
-        "when": "08:02",
-        "time": "08:02",
+        "when": "12:39",
+        "time": "12:39",
         "on": false,
         "recent": false,
         "color": 1
        },
        {
         "name": "Back garden",
-        "when": "11:01",
-        "time": "11:01",
+        "when": "15:38",
+        "time": "15:38",
         "on": true,
         "recent": true,
         "color": 5
@@ -180,26 +183,26 @@
       "cameras": [
        {
         "name": "Front camera",
-        "when": "10:40",
-        "time": "10:40",
+        "when": "15:17",
+        "time": "15:17",
         "on": false
        },
        {
         "name": "Back camera",
-        "when": "08:42",
-        "time": "08:42",
+        "when": "13:19",
+        "time": "13:19",
         "on": false
        },
        {
         "name": "Kitchen",
-        "when": "10:01",
-        "time": "10:01",
+        "when": "14:38",
+        "time": "14:38",
         "on": false
        },
        {
         "name": "Doorbell",
-        "when": "10:59",
-        "time": "10:59",
+        "when": "15:36",
+        "time": "15:36",
         "on": true
        }
       ]

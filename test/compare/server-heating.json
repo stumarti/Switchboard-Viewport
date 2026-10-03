@@ -13,8 +13,8 @@
      "data": {
       "on": true,
       "mode": "heat",
-      "current": 19.6,
-      "target": 20.5,
+      "current": null,
+      "target": null,
       "calling": 2,
       "total": 8,
       "scaleMin": 15,

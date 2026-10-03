@@ -62,6 +62,7 @@ void headers(HTTPClient& http) {
   if (g_health.battery >= 0) http.addHeader("X-Battery", String(g_health.battery));
   if (!isnan(g_health.temperature)) http.addHeader("X-Temperature", String(g_health.temperature, 1));
   if (!isnan(g_health.humidity)) http.addHeader("X-Humidity", String(g_health.humidity, 0));
+  if (!isnan(g_health.voltage)) http.addHeader("X-Voltage", String(g_health.voltage, 2));
   if (WiFi.status() == WL_CONNECTED) http.addHeader("X-RSSI", String(WiFi.RSSI()));
   http.addHeader("X-Firmware", FIRMWARE_VERSION);
   http.addHeader("X-Board", SWITCHBOARD_BOARD);

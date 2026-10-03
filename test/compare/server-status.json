@@ -95,7 +95,7 @@
       "socText": "87 %",
       "status": "charging",
       "statusText": "Charging",
-      "eta": "full at 17:17",
+      "eta": "full at 17:41",
       "color": 4,
       "low": false,
       "critical": false
@@ -225,30 +225,30 @@
       "lines": [
        {
         "day": "Today",
-        "time": "11:00",
+        "time": "11:30",
         "title": "School run",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 11:00 · School run"
+        "text": "Today 11:30 · School run"
        },
        {
         "day": "Today",
-        "time": "17:00",
+        "time": "17:30",
         "title": "Weekly planning",
         "allDay": false,
         "color": 5,
         "description": "Agenda in the shared drive, brin...",
-        "text": "Today 17:00 · Weekly planning"
+        "text": "Today 17:30 · Weekly planning"
        },
        {
         "day": "Today",
-        "time": "20:30",
+        "time": "21:00",
         "title": "Football practice",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 20:30 · Football practice"
+        "text": "Today 21:00 · Football practice"
        },
        {
         "day": "Today",

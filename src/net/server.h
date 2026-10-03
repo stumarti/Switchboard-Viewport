@@ -17,6 +17,7 @@ struct Health {
   int battery = -1;
   float temperature = NAN;
   float humidity = NAN;
+  float voltage = NAN;  // the battery's, for Home Assistant (as the panel sent it)
 };
 void setHealth(const Health& h);
 

@@ -1,6 +1,9 @@
 {
+ "screen": "heating",
+ "etag": "\"ac49e96ebc7a85e6dc2e\"",
+ "refreshInSec": 1800,
  "quiet": false,
- "generatedAt": "2026-10-03T11:18:30.761Z",
+ "generatedAt": "2026-10-03T15:39:57.769Z",
  "data": {
   "kind": "sections",
   "title": "Heating",
@@ -14,8 +17,8 @@
      "data": {
       "on": true,
       "mode": "heat",
-      "current": 19.6,
-      "target": 20.5,
+      "current": null,
+      "target": null,
       "calling": 2,
       "total": 8,
       "scaleMin": 15,

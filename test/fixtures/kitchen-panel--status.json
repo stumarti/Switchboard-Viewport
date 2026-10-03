@@ -1,6 +1,9 @@
 {
+ "screen": "status",
+ "etag": "\"51f390daebcbbcf7e537\"",
+ "refreshInSec": 1800,
  "quiet": false,
- "generatedAt": "2026-10-03T11:18:30.761Z",
+ "generatedAt": "2026-10-03T15:39:57.642Z",
  "data": {
   "kind": "sections",
   "title": "Status",
@@ -22,19 +25,19 @@
       "uvText": "3.0",
       "rain": {
        "state": "starts",
-       "time": "15:00",
-       "text": "Rain at 15:00"
+       "time": "19:00",
+       "text": "Rain at 19:00"
       },
       "solar": {
        "value": 18.5,
        "text": "Expecting 18.5kWh today"
       },
       "temperature": 16.4,
-      "feelsLike": null,
+      "feelsLike": 15,
       "humidity": 68,
       "windSpeed": 14,
       "windUnit": "km/h",
-      "temperatureUnit": "\u00b0C",
+      "temperatureUnit": "°C",
       "forecast": [
        {
         "label": "Sun",
@@ -96,7 +99,7 @@
       "socText": "87 %",
       "status": "charging",
       "statusText": "Charging",
-      "eta": "full at 12:12",
+      "eta": "full at 16:49",
       "color": 4,
       "low": false,
       "critical": false
@@ -226,30 +229,30 @@
       "lines": [
        {
         "day": "Today",
-        "time": "06:00",
+        "time": "10:30",
         "title": "School run",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 06:00 \u00b7 School run"
+        "text": "Today 10:30 · School run"
        },
        {
         "day": "Today",
-        "time": "12:00",
+        "time": "16:30",
         "title": "Weekly planning",
         "allDay": false,
         "color": 5,
         "description": "Agenda in the shared drive, brin...",
-        "text": "Today 12:00 \u00b7 Weekly planning"
+        "text": "Today 16:30 · Weekly planning"
        },
        {
         "day": "Today",
-        "time": "15:30",
+        "time": "20:00",
         "title": "Football practice",
         "allDay": false,
         "color": 1,
         "description": "",
-        "text": "Today 15:30 \u00b7 Football practice"
+        "text": "Today 20:00 · Football practice"
        },
        {
         "day": "Today",
@@ -258,7 +261,7 @@
         "allDay": true,
         "color": 2,
         "description": "",
-        "text": "Today \u00b7 Gran's birthday"
+        "text": "Today · Gran's birthday"
        }
       ]
      }
