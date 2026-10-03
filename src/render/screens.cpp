@@ -664,10 +664,20 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
     draw::face(g, draw::BOLD24, draw::color(r.color));
     draw::text(g, b.x + 42, y + 42, v);
     if (!strcmp(r.key, "solarToday") && !d["solarPct"].isNull()) {
+      // Beside the value: "64% of predicted" where it fits, else "64%".
+      const int valueEnd = g.getCursorX() + 8, right = b.x + b.w - 8;
       char pct[32];
-      snprintf(pct, sizeof(pct), "%d%% of predicted", d["solarPct"].as<int>());
       draw::face(g, draw::REG18, GxEPD_BLACK);
-      draw::textRight(g, pct, b.x + b.w - 8, y + 42);
+      for (const char* fmt : {"%d%% of predicted", "%d%%"}) {
+        snprintf(pct, sizeof(pct), fmt, d["solarPct"].as<int>());
+        int16_t bx, by;
+        uint16_t w, h;
+        g.getTextBounds(pct, 0, 0, &bx, &by, &w, &h);
+        if (valueEnd + static_cast<int>(w) <= right) {
+          draw::textRight(g, pct, right, y + 42);
+          break;
+        }
+      }
     }
     g.drawFastHLine(b.x + 8, y + 54, b.w - 16, GxEPD_BLACK);
     y += 60;
