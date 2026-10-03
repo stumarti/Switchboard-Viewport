@@ -274,6 +274,8 @@ const NIGHT = { heating: 'the quiet-hours bed icon is in every screen\'s footer 
 const KNOWN = {
   'weather-gone': { status: '"--" for a weather entity that isn\'t there (the panel left them blank)' },
   'energy-unavailable': { status: '"n/a" (the panel printed "unavailable kWh")' },
+  'energy-zero': { status: '"0.0 kWh", every total to one decimal place (the panel printed Home Assistant\'s "0 kWh")' },
+  'energy-boundary': { status: '"1.0 kWh", "123.5 kWh", "0.1 kWh": to one decimal place (the panel printed "0.99", "123.456", "0.05")' },
   'battery-unavailable': { status: '"n/a" (the panel printed "unavailable %")' },
   'alarm-triggered': { status: '"Alarm triggered" in red (the panel had no case for it: a black "Alarm" with a tick)' },
   'alarm-unavailable': { status: 'no second line (the panel printed Home Assistant\'s "unknown")' },

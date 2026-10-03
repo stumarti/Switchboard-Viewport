@@ -665,7 +665,7 @@ int energyList(Gfx& g, JsonObjectConst d, Box b) {
     int color;
   };
   const R rows[] = {{"weather-sunny-alert", "Predicted", "solarExpected", 1},
-                    {"solar-power-variant", "Generated", "solarToday", 3},
+                    {"solar-power-variant", "Generated", "solarToday", 4},
                     {"home-lightning-bolt-outline", "House Used", "loadToday", 1},
                     {"transmission-tower-import", "From Grid", "gridImport", 2},
                     {"transmission-tower-export", "To Grid", "gridExport", 4}};
