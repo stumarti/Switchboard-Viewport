@@ -160,6 +160,10 @@ void ensurePaired() {
   if (p != server::Pairing::Approved) waitForApproval(status);
 }
 
+// Why the bundle couldn't be used when the server did answer (empty: it
+// didn't answer at all).
+String g_bundleWhy;
+
 // The bundle: from the server (304 = the cached one still holds). If the cache
 // is missing or unreadable, retry once without the ETag so it can repull.
 bool fetchBundle(JsonDocument& bundle) {
@@ -197,8 +201,8 @@ bool fetchBundle(JsonDocument& bundle) {
     LOGF("[bundle] no bundle body from server or cache\n");
     return false;
   }
-  if (deserializeJson(bundle, text)) {
-    LOGF("[bundle] failed to parse bundle JSON; retrying without ETag\n");
+  if (const DeserializationError err = deserializeJson(bundle, text)) {
+    LOGF("[bundle] failed to parse bundle JSON (%s, %u bytes); retrying without ETag\n", err.c_str(), text.length());
     if (etag.length()) {
       r = server::get("/api/viewports/me/bundle");
       if (r.code == 200) {
@@ -208,6 +212,9 @@ bool fetchBundle(JsonDocument& bundle) {
         if (!deserializeJson(bundle, text)) return true;
       }
     }
+    // Not kept: the next wake asks for it whole again.
+    store::remove("bundleEtag");
+    g_bundleWhy = String("Couldn't read its layout from the server (") + err.c_str() + ")";
     return false;
   }
   LOGF("[bundle] loaded bundle OK from %s\n", r.code == 304 ? "cache" : "server");
@@ -332,7 +339,11 @@ void setup() {
   if (!server::resolve()) fail("vx_server_off", "Not connected to Switchboard", "Can't find Switchboard Server on this network");
   ensurePaired();
   JsonDocument bundle;
-  if (!fetchBundle(bundle)) serverDown();
+  if (!fetchBundle(bundle)) {
+    // The server answered, but with something the display couldn't use.
+    if (g_bundleWhy.length()) fail("vx_server_off", "Not connected to Switchboard", g_bundleWhy.c_str());
+    serverDown();
+  }
   ota::confirm();
 
   // The clock and Wi-Fi the server keeps for every device.

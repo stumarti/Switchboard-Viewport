@@ -4,6 +4,11 @@
 
 #include "app/carousel.h"
 
+#include <ArduinoJson.h>
+#include <fstream>
+#include <sstream>
+#include <string>
+
 static int g_failed = 0, g_run = 0;
 #define CHECK_EQ(a, b)                                                                              \
   do {                                                                                             \
@@ -61,6 +66,22 @@ static void directButtons() {
   CHECK_EQ(carousel::pick(1, 0, Wake::Prev, p, 0, 0, 0), 0);
 }
 
+// The bundle as Switchboard Server sends it for the kitchen dashboard
+// (test/fixtures/bundles/kitchen.json): 12 levels deep, past ArduinoJson's
+// default limit of 10, so the build raises it (platformio.ini). Without that
+// the display can't read its layout and says it isn't connected.
+static void bundleParses() {
+  std::ifstream f("test/fixtures/bundles/kitchen.json");
+  std::stringstream ss;
+  ss << f.rdbuf();
+  JsonDocument doc;
+  const DeserializationError err = deserializeJson(doc, ss.str());
+  if (err) fprintf(stderr, "bundle: %s\n", err.c_str());
+  CHECK_EQ(static_cast<bool>(err), false);
+  CHECK_EQ(doc["layout"]["screens"].size(), 3);
+  CHECK_EQ(strcmp(doc["layout"]["carousel"]["buttons"] | "", "direct"), 0);
+}
+
 static void advancing() {
   Plan p{Mode::Advance, 10};
   const int64_t t = 1'700'000'000;
@@ -88,6 +109,7 @@ int main() {
   buttons();
   kitchenPanel();
   directButtons();
+  bundleParses();
   advancing();
   staying();
   printf("%d checks, %d failed\n", g_run, g_failed);

@@ -204,15 +204,20 @@ int battery(Gfx& g, JsonObjectConst d, Box b) {
   const uint16_t stateCol = col(d["color"]);
   const int barLeft = LC_X, barRight = LC_X + BAR_W;
 
+  // The status and the time are raised from the panel's (ey+8, ey+22),
+  // where the status touched the time and the time touched the bar: the
+  // time now ends 3 px above the bar and the status clears it. The icon and
+  // the % stay where the panel had them.
+  const int STATUS_Y = ey + 1, ETA_Y = ey + 19;
   draw::icon(g, icons::slot("ve_battery"), barLeft, ey - 4, GxEPD_BLACK);
   draw::face(g, draw::BOLD24, GxEPD_BLACK);
   draw::text(g, barLeft + 27, ey + 16, str(d["socText"], "n/a"));
   draw::face(g, draw::BOLD18, stateCol);
-  draw::textRight(g, str(d["statusText"], "Idle"), barRight, ey + 8);
+  draw::textRight(g, str(d["statusText"], "Idle"), barRight, STATUS_Y);
   const char* eta = str(d["eta"]);
   if (*eta) {
     draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::textRight(g, eta, barRight, ey + 22);
+    draw::textRight(g, eta, barRight, ETA_Y);
   }
 
   const float soc = d["soc"].isNull() ? 0.0f : d["soc"].as<float>();

@@ -20,7 +20,7 @@ if [ ! -f "$AJ" ]; then
 fi
 
 CXX=${CXX:-g++}
-FLAGS=(-std=gnu++17 -O1 -g -DSB_HOST -Wall -Wno-unused-function -Wno-sign-compare -Itest/host/stubs -Itest/host -Isrc -I"$BUILD")
+FLAGS=(-std=gnu++17 -O1 -g -DSB_HOST -DARDUINOJSON_DEFAULT_NESTING_LIMIT=32 -Wall -Wno-unused-function -Wno-sign-compare -Itest/host/stubs -Itest/host -Isrc -I"$BUILD")
 RENDER_SRC=(src/render/draw.cpp src/render/icons.cpp src/render/screens.cpp test/host/stubs/Adafruit_GFX.cpp)
 
 echo "== logic tests"

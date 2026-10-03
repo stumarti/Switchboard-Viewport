@@ -13,11 +13,19 @@ OUT=test/compare/out
 mkdir -p "$BUILD" "$OUT"
 AJ_VERSION=7.4.2
 [ -f "$BUILD/ArduinoJson.h" ] || curl -sSfL -o "$BUILD/ArduinoJson.h" "https://github.com/bblanchon/ArduinoJson/releases/download/v${AJ_VERSION}/ArduinoJson-v${AJ_VERSION}.h"
+# The one place the screens are meant to differ: the battery's status and
+# time, raised so they no longer touch each other or the bar
+# (src/render/screens.cpp, battery()). The panel's code gets the same two
+# coordinates here, so the rest of the comparison stays pixel for pixel.
+sed -e 's/printRight(stateWord, barRight, ey + 8)/printRight(stateWord, barRight, ey + 1)/' \
+    -e 's/printRight(etaWord, barRight, ey + 22)/printRight(etaWord, barRight, ey + 19)/' \
+    test/compare/kitchen-dash/screen_status.cpp > "$BUILD/kd_screen_status.cpp"
+[ "$(diff test/compare/kitchen-dash/screen_status.cpp "$BUILD/kd_screen_status.cpp" | grep -c '^>')" = 2 ] || { echo "battery nudge didn't apply" >&2; exit 2; }
 ${CXX:-g++} -std=gnu++17 -O1 -DSB_HOST -DARDUINOJSON_ENABLE_ARDUINO_STRING=1 -w \
   -include test/compare/stubs/kd_env.h \
   -Isrc -Itest/compare/stubs -Itest/host -Itest/host/stubs -Isrc/kd -Itest/compare/kitchen-dash -I"$BUILD" \
   -o "$BUILD/kd-compare" \
-  test/compare/harness.cpp test/compare/kitchen-dash/main.cpp test/compare/kitchen-dash/screen_status.cpp \
+  test/compare/harness.cpp test/compare/kitchen-dash/main.cpp "$BUILD/kd_screen_status.cpp" \
   test/compare/kitchen-dash/screen_heating.cpp test/compare/kitchen-dash/screen_security.cpp \
   test/compare/kitchen-dash/screen_charge.cpp test/compare/kitchen-dash/screen_error.cpp test/compare/kitchen-dash/screen_help.cpp \
   src/render/system.cpp lib/qrcodegen/qrcodegen.c -Ilib/qrcodegen \
