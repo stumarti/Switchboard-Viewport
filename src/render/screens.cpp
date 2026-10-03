@@ -1309,10 +1309,12 @@ void roomFinder(Gfx& g, JsonObjectConst d, const char* title) {
 
 // The panel's footer: [refresh] time [battery icon] percentage, ending 12 px
 // from the right edge along y = 468; the bed-and-clock before it in quiet
-// hours.
+// hours; the carousel's icons before that. A thin bar, with space either
+// side, between the three groups.
 void footer(Gfx& g, const Ctx& ctx) {
   const int FOOTER_Y = 468, FOOTER_ICON_Y = FOOTER_Y - 18, FOOTER_TINY_Y = FOOTER_Y - 13;
   const int FOOTER_MARGIN_R = 12, FOOTER_GAP = 10;
+  const int BAR_GAP = 10, BAR_TOP = FOOTER_Y - 16, BAR_H = 18;
   const int pct = ctx.battPct;
   const uint16_t batCol = pct < 0 ? GxEPD_BLACK : pct > BATT_GREEN_PCT ? GxEPD_GREEN : pct > BATT_RED_PCT ? GxEPD_BLACK : GxEPD_RED;
   char pctStr[16];
@@ -1324,10 +1326,18 @@ void footer(Gfx& g, const Ctx& ctx) {
   const int iconX = pctX - 24 - 2;
   draw::icon(g, icons::slot("vf_battery"), iconX, FOOTER_ICON_Y, batCol, Mode::Opaque);
   draw::text(g, pctX, FOOTER_Y, pctStr);
+  // A bar before the battery, `x` its right side: returns where the group
+  // before it ends.
+  auto bar = [&](int right) {
+    const int bx = right - BAR_GAP - 1;
+    g.drawFastVLine(bx, BAR_TOP, BAR_H, GxEPD_BLACK);
+    return bx - BAR_GAP;
+  };
 
   draw::face(g, draw::REG18, GxEPD_BLACK);
   const draw::Bounds tb = draw::bounds(g, ctx.time);
-  const int timeX = iconX - FOOTER_GAP - tb.w;
+  const int timeEnd = ctx.footerBars ? bar(iconX) : iconX - FOOTER_GAP;
+  const int timeX = timeEnd - tb.w;
   draw::text(g, timeX, FOOTER_Y, ctx.time);
   const int refX = timeX - 16 - 4;
   draw::icon(g, icons::slot("vf_refresh"), refX, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
@@ -1338,7 +1348,7 @@ void footer(Gfx& g, const Ctx& ctx) {
   }
   // The carousel: every screen's icon, the one showing underlined.
   if (ctx.markCount > 1) {
-    x -= 8;
+    x = ctx.footerBars ? bar(x) + 6 : x - 8;
     const int n = ctx.markCount;
     const int step = 16 + 6;
     const int x0 = x - n * step + 6;

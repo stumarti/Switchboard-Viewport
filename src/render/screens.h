@@ -27,6 +27,9 @@ struct Ctx {
   const char* marks[12] = {};
   int markCount = 0;
   int current = 0;
+  // A bar between the footer's groups (carousel | refresh | battery). Off
+  // only for the comparison with the kitchen panel, which had none.
+  bool footerBars = true;
 };
 
 // A screen as /api/viewports/me/state?screen=<id> returns it (its `data`).
