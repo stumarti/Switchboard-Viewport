@@ -1,0 +1,122 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-03T11:18:30.794Z",
+ "data": {
+  "kind": "sections",
+  "title": "Reception",
+  "template": "sidebar",
+  "columns": [
+   [
+    {
+     "id": "6d29ef86-253c-4f6a-b1d6-43f7327b89cc",
+     "type": "weather",
+     "title": "",
+     "data": {
+      "condition": "partlycloudy",
+      "icon": "partlycloudy",
+      "temperatureText": "16",
+      "humidityText": "68",
+      "windText": "14",
+      "bearing": null,
+      "uv": 3,
+      "uvText": "3.0",
+      "rain": null,
+      "solar": null,
+      "temperature": 16.4,
+      "feelsLike": 15,
+      "humidity": 68,
+      "windSpeed": 14,
+      "windUnit": "km/h",
+      "temperatureUnit": "\u00b0C",
+      "forecast": [
+       {
+        "label": "Later",
+        "condition": "rainy",
+        "high": 14.4,
+        "low": null
+       },
+       {
+        "label": "Sun",
+        "condition": "rainy",
+        "high": 18,
+        "low": 10
+       },
+       {
+        "label": "Mon",
+        "condition": "sunny",
+        "high": 19,
+        "low": 9
+       }
+      ]
+     }
+    },
+    {
+     "id": "2e5a73a2-e5db-4bab-834b-a1ac13450975",
+     "type": "calendar",
+     "title": "",
+     "data": {
+      "lines": [
+       {
+        "day": "Today",
+        "time": "10:30",
+        "title": "Quarterly review",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 10:30 \u00b7 Quarterly review"
+       },
+       {
+        "day": "Today",
+        "time": "11:30",
+        "title": "Design sync",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 11:30 \u00b7 Design sync"
+       },
+       {
+        "day": "Today",
+        "time": "14:00",
+        "title": "Hiring panel",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 14:00 \u00b7 Hiring panel"
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": "b5f83e4e-7cce-4196-b074-ae15d33b3c37",
+     "type": "announcements",
+     "title": "Company news",
+     "data": {
+      "items": [
+       {
+        "title": "New bike shelter opens on Monday",
+        "summary": "Forty covered spaces behind building B, with charging for e-bikes.",
+        "when": "09:02"
+       },
+       {
+        "title": "All-hands moves to Thursday",
+        "summary": "Same time, 10:00, in the atrium. Questions to the people team.",
+        "when": "yesterday"
+       },
+       {
+        "title": "Fire drill this Friday at 11:00",
+        "summary": "Leave by the nearest exit and meet at the car park.",
+        "when": "Wed"
+       }
+      ],
+      "color": 1,
+      "empty": "",
+      "error": ""
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}

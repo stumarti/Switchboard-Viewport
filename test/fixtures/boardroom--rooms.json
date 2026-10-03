@@ -1,0 +1,46 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-03T11:18:30.745Z",
+ "data": {
+  "kind": "roomFinder",
+  "title": "Other rooms",
+  "data": {
+   "rooms": [
+    {
+     "name": "Quiet room",
+     "status": "free",
+     "available": true,
+     "label": "Free",
+     "color": 4,
+     "icon": "door-open",
+     "until": "Free for the rest of the day",
+     "freeForMin": null
+    },
+    {
+     "name": "Focus room",
+     "status": "free",
+     "available": true,
+     "label": "Free",
+     "color": 4,
+     "icon": "door-open",
+     "until": "Free until 12:00",
+     "freeForMin": 41
+    },
+    {
+     "name": "Huddle",
+     "status": "busy",
+     "available": false,
+     "label": "In use",
+     "color": 2,
+     "icon": "account-group",
+     "until": "Busy until 11:45",
+     "freeForMin": 0
+    }
+   ],
+   "available": 2,
+   "total": 3,
+   "summary": "2 of 3 rooms free"
+  },
+  "nextChangeInSec": 1590
+ }
+}

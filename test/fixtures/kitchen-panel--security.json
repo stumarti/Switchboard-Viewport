@@ -1,0 +1,212 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-03T11:18:30.761Z",
+ "data": {
+  "kind": "sections",
+  "title": "Security",
+  "template": "triple",
+  "columns": [
+   [
+    {
+     "id": "security-alarm",
+     "type": "alarm",
+     "title": "",
+     "data": {
+      "state": "disarmed",
+      "label": "Disarmed",
+      "since": "06:02",
+      "sinceTime": "06:02",
+      "summary": true,
+      "color": 4,
+      "last": {
+       "armed": "",
+       "disarmed": "",
+       "triggered": ""
+      }
+     }
+    }
+   ],
+   [
+    {
+     "id": "security-doors",
+     "type": "openings",
+     "title": "Doors",
+     "data": {
+      "items": [
+       {
+        "name": "Front door",
+        "open": true,
+        "state": "Open",
+        "when": "10:58",
+        "time": "10:58",
+        "color": 2
+       },
+       {
+        "name": "Back door",
+        "open": false,
+        "state": "Closed",
+        "when": "06:02",
+        "time": "06:02",
+        "color": 4
+       }
+      ],
+      "open": 1,
+      "total": 2
+     }
+    },
+    {
+     "id": "security-windows",
+     "type": "openings",
+     "title": "Windows",
+     "data": {
+      "items": [
+       {
+        "name": "Kitchen",
+        "open": false,
+        "state": "Closed",
+        "when": "09:22",
+        "time": "09:22",
+        "color": 4
+       },
+       {
+        "name": "Living room",
+        "open": true,
+        "state": "Open",
+        "when": "09:52",
+        "time": "09:52",
+        "color": 2
+       },
+       {
+        "name": "Side windows",
+        "open": false,
+        "state": "Closed",
+        "when": "10:22",
+        "time": "10:22",
+        "color": 4
+       },
+       {
+        "name": "Bedroom L",
+        "open": false,
+        "state": "Closed",
+        "when": "07:52",
+        "time": "07:52",
+        "color": 4
+       },
+       {
+        "name": "Bedroom R",
+        "open": false,
+        "state": "Closed",
+        "when": "07:22",
+        "time": "07:22",
+        "color": 4
+       },
+       {
+        "name": "Office L",
+        "open": false,
+        "state": "Closed",
+        "when": "08:52",
+        "time": "08:52",
+        "color": 4
+       },
+       {
+        "name": "Office R",
+        "open": false,
+        "state": "Closed",
+        "when": "08:22",
+        "time": "08:22",
+        "color": 4
+       }
+      ],
+      "open": 1,
+      "total": 7
+     }
+    }
+   ],
+   [
+    {
+     "id": "security-motion",
+     "type": "motion",
+     "title": "Motion",
+     "data": {
+      "sensors": [
+       {
+        "name": "Front door",
+        "when": "10:59",
+        "time": "10:59",
+        "on": true,
+        "recent": true,
+        "color": 5
+       },
+       {
+        "name": "Hall",
+        "when": "10:54",
+        "time": "10:54",
+        "on": false,
+        "recent": true,
+        "color": 5
+       },
+       {
+        "name": "Landing",
+        "when": "09:27",
+        "time": "09:27",
+        "on": false,
+        "recent": false,
+        "color": 1
+       },
+       {
+        "name": "Rec. Landing",
+        "when": "08:02",
+        "time": "08:02",
+        "on": false,
+        "recent": false,
+        "color": 1
+       },
+       {
+        "name": "Back garden",
+        "when": "11:01",
+        "time": "11:01",
+        "on": true,
+        "recent": true,
+        "color": 5
+       }
+      ]
+     }
+    },
+    {
+     "id": "security-cameras",
+     "type": "cameras",
+     "title": "Cameras",
+     "data": {
+      "cameras": [
+       {
+        "name": "Front camera",
+        "when": "10:40",
+        "time": "10:40",
+        "on": false
+       },
+       {
+        "name": "Back camera",
+        "when": "08:42",
+        "time": "08:42",
+        "on": false
+       },
+       {
+        "name": "Kitchen",
+        "when": "10:01",
+        "time": "10:01",
+        "on": false
+       },
+       {
+        "name": "Doorbell",
+        "when": "10:59",
+        "time": "10:59",
+        "on": true
+       }
+      ]
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}

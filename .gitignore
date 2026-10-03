@@ -1,0 +1,13 @@
+# PlatformIO
+.pio/
+.pioenvs/
+build/
+
+# Host tests
+test/host/out/
+test/host/build/
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db

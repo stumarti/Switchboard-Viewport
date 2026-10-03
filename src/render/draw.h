@@ -1,0 +1,81 @@
+// =============================================================================
+// draw.h — what every screen draws with: the panel's six colours, the four
+// font faces, text placement and icons.
+//
+// Everything draws onto an Adafruit_GFX: the GxEPD2 panel on the device, a
+// plain canvas in the host tests (test/host), so a screen renders the same in
+// both. Coordinates are the panel's: 800x480, y down; text y is the baseline
+// (GFX fonts), exactly as the kitchen panel's own drawing code placed it.
+// =============================================================================
+#pragma once
+#include <stdint.h>
+#include <Adafruit_GFX.h>
+#include "render/colors.h"
+
+namespace draw {
+
+using Gfx = Adafruit_GFX;
+
+constexpr int PANEL_W = 800;
+constexpr int PANEL_H = 480;
+
+// The panel's palette, by the index Switchboard Server uses: 0 white,
+// 1 black, 2 red, 3 yellow, 4 green, 5 blue.
+uint16_t color(int idx);
+
+// The four faces. Each is the theme's font from Switchboard Server when one
+// is loaded (theme.h), else the panel's built-in Atkinson Hyperlegible:
+//   REG18  9pt regular    BOLD18  9pt bold    BOLD24  12pt bold
+//   BOLD82 42pt bold (the big temperature, ON/OFF)
+enum Face : uint8_t { REG18 = 0, BOLD18, BOLD24, BOLD82, FACE_COUNT };
+const GFXfont* font(Face f);
+// Overrides (the theme's faces); nullptr restores the built-in one.
+void setFont(Face f, const GFXfont* override_);
+
+void face(Gfx& g, Face f, uint16_t col, uint8_t size = 1);
+
+// Text extents as the kitchen panel measured them (getTextBounds).
+struct Bounds { int16_t x, y; uint16_t w, h; };
+Bounds bounds(Gfx& g, const char* s, int x = 0, int y = 0);
+
+void text(Gfx& g, int x, int y, const char* s);
+// Right-aligned so it ends at `right` (the panel's printRight()).
+void textRight(Gfx& g, const char* s, int right, int y);
+// Centred in [x, x + w).
+void textCentered(Gfx& g, const char* s, int x, int w, int y);
+// Words wrapped to `w`, at most `maxLines` lines of `lineH`; returns the
+// number of lines used.
+int textWrapped(Gfx& g, const char* s, int x, int y, int w, int lineH, int maxLines);
+// `src` when it's at most `limit` characters, else its first `keep` and
+// "..." — the panel's `if (s.length() > limit) s = s.substring(0, keep) + "..."`.
+void cut(char* out, size_t cap, const char* src, int limit, int keep);
+
+// --- Icons ---------------------------------------------------------------------
+//
+// Two formats: the kitchen panel's own 4-bit bitmaps (each pixel a palette
+// index, 1 = "the tint"), compiled in as the default look; and 1-bit masks
+// (Switchboard's icon format: a theme pack's slots, and icons a layout picks
+// that are fetched from the server), drawn in the tint.
+struct Icon {
+  uint16_t w = 0, h = 0;
+  const uint8_t* bits = nullptr;
+  bool fourBit = false;
+  explicit operator bool() const { return bits != nullptr; }
+};
+
+// How an icon covers what's under it, as each of the panel's draw helpers
+// did:
+//   Opaque  every pixel, white included (status bar, detail row, weather...)
+//   Ink     only inked pixels, other colours kept (heating page on its flood)
+//   Mask    only the tint (security and error screens)
+enum class Mode : uint8_t { Opaque, Ink, Mask };
+
+void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode = Mode::Opaque);
+// A 4-bit picture (album art in the server's "spectra" format), as is.
+void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y);
+
+// The panel's dotted rules: 2 px of ink every 7 px.
+void dottedV(Gfx& g, int x, int y0, int y1);
+void dottedH(Gfx& g, int x0, int x1, int y);
+
+}  // namespace draw
