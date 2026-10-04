@@ -163,7 +163,8 @@ void energyCell(Gfx& g, const Icon& ic, const char* value, uint16_t iconColor, i
   draw::face(g, draw::REG18, GxEPD_BLACK);
   const draw::Bounds b = draw::bounds(g, value);
   g.setCursor(x + (cellW - static_cast<int>(b.w)) / 2 - b.x, y + ICON + 13);
-  g.print(value);
+  char buf[64];
+  g.print(draw::ascii(buf, sizeof(buf), value));
 }
 
 const char* energyText(JsonVariantConst m) { return m.isNull() ? "n/a" : str(m["text"], "n/a"); }
@@ -546,17 +547,17 @@ int alarm(Gfx& g, JsonObjectConst d, Box b, JsonArrayConst siblings) {
       JsonObjectConst sd = s["data"];
       if (!strcmp(type, "openings")) {
         const int n = sd["total"] | 0, open = sd["open"] | 0;
-        // As the panel worded them (the dash isn't in the font).
+        // As the panel showed them: its "—" isn't in the font, so two spaces.
         if (isWindows(s)) {
-          snprintf(buf, sizeof(buf), "%d window%s%s", open, open == 1 ? "" : "s", open == 0 ? " \xE2\x80\x94 all closed" : " open");
+          snprintf(buf, sizeof(buf), "%d window%s%s", open, open == 1 ? "" : "s", open == 0 ? "  all closed" : " open");
           row("vs_window", buf, open > 0 ? GxEPD_RED : GxEPD_BLACK);
         } else {
           char what[32];
           snprintf(what, sizeof(what), "%s", *str(s["title"]) ? str(s["title"]) : "doors");
           for (char* p = what; *p; ++p)
             if (*p >= 'A' && *p <= 'Z') *p += 32;
-          if (open == 0) snprintf(buf, sizeof(buf), "%d %s \xE2\x80\x94 all closed", n, what);
-          else snprintf(buf, sizeof(buf), "%d %s \xE2\x80\x94 %d open", n, what, open);
+          if (open == 0) snprintf(buf, sizeof(buf), "%d %s  all closed", n, what);
+          else snprintf(buf, sizeof(buf), "%d %s  %d open", n, what, open);
           row("vs_door", buf, open > 0 ? GxEPD_RED : GxEPD_BLACK);
         }
       } else if (!strcmp(type, "motion")) {
@@ -1082,8 +1083,7 @@ int transport(Gfx& g, JsonObjectConst d, Box b) {
   const int ROW_H = 58, COL_W = 92, BADGE_H = 32;
   int y = b.y;
   char buf[64], fitted[96];
-  int16_t bx, by;
-  uint16_t tw, th;
+  uint16_t tw;
   for (JsonObjectConst t : d["routes"].as<JsonArrayConst>()) {
     if (y + ROW_H > draw::PANEL_H - 24) break;
     const uint16_t c = col(t["color"], 4);
@@ -1091,7 +1091,8 @@ int transport(Gfx& g, JsonObjectConst d, Box b) {
     const char* route = str(t["route"]);
     if (*route) {
       draw::face(g, draw::BOLD24, GxEPD_WHITE);
-      g.getTextBounds(route, 0, 0, &bx, &by, &tw, &th);
+      const draw::Bounds rb = draw::bounds(g, route);
+      tw = rb.w;
       const int w = tw + 16 > 48 ? tw + 16 : 48;
       g.fillRoundRect(x, y + 6, w, BADGE_H, 4, c);
       draw::textCentered(g, route, x, w, y + 6 + BADGE_H / 2 + 8);

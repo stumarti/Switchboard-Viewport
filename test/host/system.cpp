@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string>
 #include "canvas.h"
+#include "render/draw.h"
 #include "render/system.h"
+#include <string.h>
 
 int main(int argc, char** argv) {
   const std::string out = argc > 1 ? argv[1] : ".";
@@ -65,6 +67,26 @@ int main(int argc, char** argv) {
     sys::updating(c, "v0.2.0", "Downloading: 40%");
     save(c, "updating");
   }
-  printf("system screens rendered\n");
+  // Text from the server is UTF-8; the fonts are ASCII.
+  int failed = 0;
+  auto expect = [&](const char* in, const char* want) {
+    char buf[64];
+    draw::ascii(buf, sizeof(buf), in);
+    if (strcmp(buf, want)) {
+      printf("FAIL ascii(\"%s\") = \"%s\", want \"%s\"\n", in, buf, want);
+      ++failed;
+    }
+  };
+  expect("10:30\xE2\x80\x93" "11:30", "10:30-11:30");                // en dash
+  expect("Sam\xE2\x80\x99s review", "Sam's review");                // Outlook's apostrophe
+  expect("\xE2\x80\x9C" "All hands\xE2\x80\x9D", "\"All hands\"");
+  expect("Caf\xC3\xA9 \xC3\x85lesund \xC5\x81\xC3\xB3" "d\xC5\xBA", "Cafe Alesund Lodz");
+  expect("Stra\xC3\x9F" "e", "Strasse");
+  expect("Wait\xE2\x80\xA6", "Wait...");
+  expect("42 \xC2\xB7 City", "42  City");                              // left out, as before
+  expect("21\xC2\xB0" "C", "21C");
+  expect("broken \xE2\x80", "broken ");                              // a cut-off character
+  if (failed) return 1;
+  printf("system screens rendered, text checks passed\n");
   return 0;
 }

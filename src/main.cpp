@@ -71,12 +71,16 @@ RTC_DATA_ATTR uint32_t rtcSleep = 0;  // the last plan, for wakes that can't ask
 RTC_DATA_ATTR uint32_t rtcPlanSec = 0;
 RTC_DATA_ATTR uint32_t rtcQuietSec = 0;
 RTC_DATA_ATTR int8_t rtcQuietFrom = -1, rtcQuietTo = -1;
+RTC_DATA_ATTR bool rtcQuietWeekends = false;  // quiet all Saturday and Sunday too (an office)
 
 int localHour();
+int localWeekday();
 
 uint32_t planSleep() {
   const int h = localHour();
-  if (rtcQuietSec && otapolicy::inWindow(h, rtcQuietFrom, rtcQuietTo)) return rtcQuietSec;
+  const int wd = localWeekday();
+  const bool weekend = rtcQuietWeekends && (wd == 0 || wd == 6);
+  if (rtcQuietSec && (weekend || otapolicy::inWindow(h, rtcQuietFrom, rtcQuietTo))) return rtcQuietSec;
   return rtcPlanSec ? rtcPlanSec : SLEEP_ERROR_SEC;
 }
 
@@ -97,6 +101,12 @@ void localTime(char* out, size_t cap, const char* fmt, const char* fallback) {
 int localHour() {
   struct tm tm;
   return nowEpoch() && getLocalTime(&tm, 50) ? tm.tm_hour : -1;
+}
+
+// 0 Sunday ... 6 Saturday, or -1 before the clock is set.
+int localWeekday() {
+  struct tm tm;
+  return nowEpoch() && getLocalTime(&tm, 50) ? tm.tm_wday : -1;
 }
 
 void setClock(int utcOffsetMin, const String& ntp) {
@@ -365,10 +375,12 @@ void setup() {
   {
     rtcPlanSec = (layout["refreshIntervalMin"] | 30) * 60u;
     JsonObjectConst q = layout["quietHours"];
-    const bool on = (q["enabled"] | false) && (q["start"] | 0) != (q["end"] | 0);
+    const bool nightly = (q["enabled"] | false) && (q["start"] | 0) != (q["end"] | 0);
+    rtcQuietWeekends = (q["enabled"] | false) && (q["weekends"] | false);
+    const bool on = nightly || rtcQuietWeekends;
     rtcQuietSec = on ? (q["intervalMin"] | 60) * 60u : 0;
-    rtcQuietFrom = on ? static_cast<int8_t>(q["start"] | 23) : -1;
-    rtcQuietTo = on ? static_cast<int8_t>(q["end"] | 6) : -1;
+    rtcQuietFrom = nightly ? static_cast<int8_t>(q["start"] | 23) : -1;
+    rtcQuietTo = nightly ? static_cast<int8_t>(q["end"] | 6) : -1;
   }
   if (!(bundle["assigned"] | false)) {
     if (!alreadyShowing(Panel::NotSetUp, "")) {
