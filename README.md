@@ -28,12 +28,13 @@ The server learns how fast the battery drains and shows the **days left** on its
 
 ## What it shows
 
-Build its screens in [Switchboard Server](https://github.com/stumarti/Switchboard-Server)'s layout builder, which has a live preview from Home Assistant. Pick from twenty section types and arrange them in one, two or three columns. The display picks up changes at its next refresh.
+Build its screens in [Switchboard Server](https://github.com/stumarti/Switchboard-Server)'s layout builder, which has a live preview from Home Assistant. Pick from twenty-five section types and arrange them in one, two or three columns. The display picks up changes at its next refresh.
 
 - **The kitchen dashboard:** the Status, Heating and Security screens from the panel's original firmware, drawn pixel for pixel the same (`test/compare` checks this).
 - **Weather:** now, later and the next days, with colour icons. **Energy:** totals, and a graph of solar against its forecast and where your power went. **The home battery:** its charge, whether it's charging, and when it'll be full.
 - **Heating:** each zone against its setpoint. **Security:** the alarm, doors and windows, motion and cameras. **Now:** whatever needs attention.
 - **Calendar, people, now playing, room temperatures, bus and train departures, announcements**, plus a meeting room sign and a room finder for the office.
+- **Around the house:** the next bin collection ("Put out tonight: Recycling"), air quality and pollen in green, yellow or red, a guest Wi-Fi QR code to scan, and messages of your own with live values filled in.
 - **In the office:** a sign per meeting room, its calendar read straight from a Google Calendar, Outlook / Microsoft 365 or iCloud link, changing two minutes ahead of each meeting and quiet at nights and weekends. Paste a list of rooms into the server to set up a whole floor ([Viewports in the office](https://stumarti.github.io/Switchboard/manual/viewport/office.html)).
 
 <p><img src="docs/images/office-door.jpg" width="800" alt="A render of a viewport on a glass meeting-room door, showing the Boardroom in use until 12:00"></p>
