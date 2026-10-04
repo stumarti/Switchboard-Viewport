@@ -1,0 +1,147 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-04T16:36:51.901Z",
+ "data": {
+  "kind": "sections",
+  "title": "Hall",
+  "template": "sidebar",
+  "columns": [
+   [
+    {
+     "id": "3df46664-ca6e-4cea-a415-d858c2a92034",
+     "type": "weather",
+     "title": "",
+     "data": {
+      "condition": "partlycloudy",
+      "icon": "partlycloudy",
+      "temperatureText": "16",
+      "humidityText": "68",
+      "windText": "14",
+      "bearing": 230,
+      "uv": 3,
+      "uvText": "3.0",
+      "rain": null,
+      "solar": null,
+      "temperature": 16.4,
+      "feelsLike": 15,
+      "humidity": 68,
+      "windSpeed": 14,
+      "windUnit": "km/h",
+      "temperatureUnit": "°C",
+      "forecast": [
+       {
+        "label": "Later",
+        "condition": "rainy",
+        "high": 14.4,
+        "low": null
+       },
+       {
+        "label": "Mon",
+        "condition": "rainy",
+        "high": 18,
+        "low": 10
+       },
+       {
+        "label": "Tue",
+        "condition": "sunny",
+        "high": 19,
+        "low": 9
+       }
+      ]
+     }
+    },
+    {
+     "id": "a5bdeef5-f266-4c67-babd-b50db6dea9da",
+     "type": "message",
+     "title": "",
+     "data": {
+      "lines": [
+       "Keys, wallet, phone?"
+      ],
+      "size": "bold",
+      "align": "center",
+      "color": 1,
+      "icon": "key-variant"
+     }
+    }
+   ],
+   [
+    {
+     "id": "2824d13f-3000-4b21-829d-876a27b225e6",
+     "type": "bins",
+     "title": "Bins",
+     "data": {
+      "lines": [
+       {
+        "name": "Recycling",
+        "icon": "recycle",
+        "color": 5,
+        "when": "Tomorrow",
+        "soon": true
+       },
+       {
+        "name": "General waste",
+        "icon": "trash-can-outline",
+        "color": 1,
+        "when": "Wed",
+        "soon": false
+       },
+       {
+        "name": "Garden waste",
+        "icon": "leaf",
+        "color": 4,
+        "when": "Fri",
+        "soon": false
+       },
+       {
+        "name": "Food waste",
+        "icon": "food-apple-outline",
+        "color": 4,
+        "when": "14 Oct",
+        "soon": false
+       }
+      ],
+      "note": "",
+      "empty": ""
+     }
+    },
+    {
+     "id": "eca328e3-9ca4-4676-b624-f87a4abc995c",
+     "type": "airQuality",
+     "title": "Air and pollen",
+     "data": {
+      "items": [
+       {
+        "name": "CO2",
+        "value": "640 ppm",
+        "level": "Good",
+        "color": 4
+       },
+       {
+        "name": "Humidity",
+        "value": "64%",
+        "level": "Fair",
+        "color": 3
+       },
+       {
+        "name": "Grass pollen",
+        "value": "High",
+        "level": "",
+        "color": 2
+       },
+       {
+        "name": "Tree pollen",
+        "value": "Low",
+        "level": "",
+        "color": 4
+       }
+      ],
+      "worst": "Poor",
+      "empty": ""
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}
