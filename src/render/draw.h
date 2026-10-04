@@ -36,6 +36,10 @@ void face(Gfx& g, Face f, uint16_t col, uint8_t size = 1);
 
 // Text extents as the kitchen panel measured them (getTextBounds).
 struct Bounds { int16_t x, y; uint16_t w, h; };
+// `s` (UTF-8) as the panel's ASCII fonts can draw it: "–" as "-", "’" as
+// "'", "é" as "e", anything else left out. Every text function here does it.
+const char* ascii(char* out, size_t cap, const char* s);
+
 Bounds bounds(Gfx& g, const char* s, int x = 0, int y = 0);
 
 void text(Gfx& g, int x, int y, const char* s);

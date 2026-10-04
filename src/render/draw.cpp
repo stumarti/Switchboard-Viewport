@@ -34,33 +34,99 @@ void face(Gfx& g, Face f, uint16_t col, uint8_t size) {
   g.setTextWrap(false);
 }
 
+// The panel's fonts are ASCII. Text from the server is UTF-8 (a meeting's
+// "10:30–11:30", an Outlook title's "Sam’s", "Café"), whose other
+// characters the font would just leave out: each becomes its nearest ASCII
+// instead — accents dropped, dashes and quotes plain. Anything else (the
+// middle dot "·", "°") is left out, as before.
+static const char* const LATIN1[64] = {
+    "A", "A", "A", "A", "A", "A", "AE", "C", "E", "E", "E", "E", "I", "I", "I", "I",
+    "D", "N", "O", "O", "O", "O", "O", "x", "O", "U", "U", "U", "U", "Y", "Th", "ss",
+    "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
+    "d", "n", "o", "o", "o", "o", "o", "", "o", "u", "u", "u", "u", "y", "th", "y",
+};
+static const char* const LATIN_EXT_A[128] = {
+    "A", "a", "A", "a", "A", "a", "C", "c", "C", "c", "C", "c", "C", "c", "D", "d",
+    "D", "d", "E", "e", "E", "e", "E", "e", "E", "e", "E", "e", "G", "g", "G", "g",
+    "G", "g", "G", "g", "H", "h", "H", "h", "I", "i", "I", "i", "I", "i", "I", "i",
+    "I", "i", "IJ", "ij", "J", "j", "K", "k", "k", "L", "l", "L", "l", "L", "l", "L",
+    "l", "L", "l", "N", "n", "N", "n", "N", "n", "n", "N", "n", "O", "o", "O", "o",
+    "O", "o", "OE", "oe", "R", "r", "R", "r", "R", "r", "S", "s", "S", "s", "S", "s",
+    "S", "s", "T", "t", "T", "t", "T", "t", "U", "u", "U", "u", "U", "u", "U", "u",
+    "U", "u", "U", "u", "W", "w", "Y", "y", "Y", "Z", "z", "Z", "z", "Z", "z", "s",
+};
+
+static const char* asciiFor(uint32_t cp) {
+  if (cp >= 0xC0 && cp < 0x100) return LATIN1[cp - 0xC0];
+  if (cp >= 0x100 && cp < 0x180) return LATIN_EXT_A[cp - 0x100];
+  switch (cp) {
+    case 0xA0: return " ";                                           // no-break space
+    case 0x2010: case 0x2011: case 0x2012: case 0x2013: case 0x2014:
+    case 0x2015: case 0x2212: return "-";                            // dashes, minus
+    case 0x2018: case 0x2019: case 0x201A: case 0x2032: return "'";  // single quotes
+    case 0x201C: case 0x201D: case 0x201E: case 0x2033: return "\"";
+    case 0x2026: return "...";
+    case 0x2022: return "-";                                         // bullet
+    default: return "";
+  }
+}
+
+const char* ascii(char* out, size_t cap, const char* s) {
+  if (!cap) return out;
+  size_t n = 0;
+  const unsigned char* p = reinterpret_cast<const unsigned char*>(s ? s : "");
+  while (*p && n + 1 < cap) {
+    if (*p < 0x80) {
+      out[n++] = static_cast<char>(*p++);
+      continue;
+    }
+    // One UTF-8 character: its code point (a broken sequence is skipped).
+    uint32_t cp = 0;
+    int more = *p >= 0xF0 ? 3 : *p >= 0xE0 ? 2 : *p >= 0xC0 ? 1 : 0;
+    cp = *p++ & (0x3F >> more);
+    for (; more > 0 && (*p & 0xC0) == 0x80; --more) cp = (cp << 6) | (*p++ & 0x3F);
+    if (more) continue;
+    for (const char* a = asciiFor(cp); *a && n + 1 < cap; ++a) out[n++] = *a;
+  }
+  out[n] = 0;
+  return out;
+}
+
 Bounds bounds(Gfx& g, const char* s, int x, int y) {
+  char buf[256];
+  ascii(buf, sizeof(buf), s);
   Bounds b{0, 0, 0, 0};
-  g.getTextBounds(s, x, y, &b.x, &b.y, &b.w, &b.h);
+  g.getTextBounds(buf, x, y, &b.x, &b.y, &b.w, &b.h);
   return b;
 }
 
 void text(Gfx& g, int x, int y, const char* s) {
+  char buf[256];
   g.setCursor(x, y);
-  g.print(s);
+  g.print(ascii(buf, sizeof(buf), s));
 }
 
 void textRight(Gfx& g, const char* s, int right, int y) {
-  const Bounds b = bounds(g, s);
+  char buf[256];
+  ascii(buf, sizeof(buf), s);
+  const Bounds b = bounds(g, buf);
   g.setCursor(right - b.w, y);
-  g.print(s);
+  g.print(buf);
 }
 
 void textCentered(Gfx& g, const char* s, int x, int w, int y) {
-  const Bounds b = bounds(g, s);
+  char buf[256];
+  ascii(buf, sizeof(buf), s);
+  const Bounds b = bounds(g, buf);
   g.setCursor(x + (w - static_cast<int>(b.w)) / 2, y);
-  g.print(s);
+  g.print(buf);
 }
 
 int textWrapped(Gfx& g, const char* s, int x, int y, int w, int lineH, int maxLines) {
   char line[164];
+  char all[512];
   int lines = 0;
-  const char* p = s;
+  const char* p = ascii(all, sizeof(all), s);
   while (*p && lines < maxLines) {
     while (*p == ' ') ++p;
     if (!*p) break;
@@ -143,7 +209,7 @@ const char* fixed(char* out, size_t cap, float value, int prec) {
 }
 
 const char* fit(Gfx& g, char* out, size_t cap, const char* s, int maxW) {
-  snprintf(out, cap, "%s", s ? s : "");
+  ascii(out, cap, s);
   int16_t bx, by;
   uint16_t w, h;
   g.getTextBounds(out, 0, 0, &bx, &by, &w, &h);
