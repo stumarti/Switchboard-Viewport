@@ -1161,6 +1161,159 @@ int announcements(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y;
 }
 
+// A guest network's join code: the server's rows of modules ('0'/'1'), as
+// big as fits (up to 6 px a module) with a 4-module margin. Beside it in a
+// wide column, under it in the sidebar: the words, the network, the password.
+int guestWifi(Gfx& g, JsonObjectConst d, Box b) {
+  JsonArrayConst rows = d["qr"];
+  const int n = rows.size();
+  if (n == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + 20, str(d["empty"], "No network"));
+    return 28;
+  }
+  const bool wide = b.w >= 380;
+  const int room = wide ? 200 : b.w - 16;
+  int scale = room / (n + 8);
+  if (scale > 6) scale = 6;
+  if (scale < 1) scale = 1;
+  const int side = (n + 8) * scale;
+  const int qx = wide ? b.x + 4 : b.x + (b.w - side) / 2;
+  g.fillRect(qx, b.y, side, side, GxEPD_WHITE);
+  g.drawRect(qx, b.y, side, side, GxEPD_BLACK);
+  int r = 0;
+  for (JsonVariantConst row : rows) {
+    const char* bits = row.as<const char*>();
+    for (int c = 0; bits && bits[c]; ++c)
+      if (bits[c] == '1') g.fillRect(qx + (c + 4) * scale, b.y + (r + 4) * scale, scale, scale, GxEPD_BLACK);
+    ++r;
+  }
+  // The words.
+  const int tx = wide ? qx + side + 16 : b.x + 8;
+  const int tw = wide ? b.x + b.w - 8 - tx : b.w - 16;
+  int y = wide ? b.y + 8 : b.y + side + 8;
+  char buf[80];
+  if (*str(d["caption"])) {
+    draw::face(g, draw::BOLD24, GxEPD_BLACK);
+    y += 26 * draw::textWrapped(g, str(d["caption"]), tx, y + 22, tw, 26, wide ? 3 : 2) + 8;
+  }
+  const auto pair = [&](const char* label, const char* value) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, tx, y + 16, label);
+    draw::face(g, draw::BOLD24, GxEPD_BLACK);
+    draw::text(g, tx, y + 42, draw::fit(g, buf, sizeof(buf), value, tw));
+    y += 50;
+  };
+  pair("Network", str(d["ssid"]));
+  if (*str(d["password"])) pair("Password", str(d["password"]));
+  const int bottom = wide ? (b.y + side > y ? b.y + side : y) : y;
+  return bottom - b.y + 4;
+}
+
+// A few lines of text, in one of three sizes, left or centred, with an
+// optional icon before them. Nothing at all when the text came out blank.
+int message(Gfx& g, JsonObjectConst d, Box b) {
+  JsonArrayConst lines = d["lines"];
+  if (lines.size() == 0) return 0;
+  const char* size = str(d["size"], "bold");
+  const bool large = !strcmp(size, "large");
+  const draw::Face f = large ? draw::BOLD24 : !strcmp(size, "normal") ? draw::REG18 : draw::BOLD18;
+  const int lh = large ? 30 : 22;
+  const bool centre = !strcmp(str(d["align"]), "center");
+  int x = b.x + 8;
+  int w = b.w - 16;
+  const uint16_t c = col(d["color"]);
+  if (*str(d["icon"])) {
+    const int is = large ? 32 : 24;
+    draw::icon(g, icons::named(str(d["icon"]), is), x, b.y + 2, c, Mode::Ink);
+    x += is + 8;
+    w -= is + 8;
+  }
+  int y = b.y;
+  draw::face(g, f, c);
+  for (JsonVariantConst l : lines) {
+    const char* t = l.as<const char*>();
+    if (!t || !*t) {
+      y += lh / 2;
+      continue;
+    }
+    if (centre) {
+      char buf[160];
+      draw::textCentered(g, draw::fit(g, buf, sizeof(buf), t, w), x, w, y + lh - 6);
+      y += lh;
+    } else {
+      y += lh * draw::textWrapped(g, t, x, y + lh - 6, w, lh, 4);
+    }
+    if (y > draw::PANEL_H - 24) break;
+  }
+  return y - b.y + 6;
+}
+
+// The next bin collections: each bin's icon in its colour, its name, and
+// when (red for today and tomorrow); "Put out tonight" above them.
+int bins(Gfx& g, JsonObjectConst d, Box b) {
+  int y = b.y;
+  char buf[64];
+  if (*str(d["note"])) {
+    draw::face(g, draw::BOLD18, GxEPD_RED);
+    y += 22 * draw::textWrapped(g, str(d["note"]), b.x + 8, y + 16, b.w - 16, 22, 2) + 4;
+  }
+  JsonArrayConst lines = d["lines"];
+  if (lines.size() == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, y + 20, str(d["empty"], "No collections"));
+    return y - b.y + 28;
+  }
+  for (JsonObjectConst it : lines) {
+    draw::icon(g, icons::named(str(it["icon"], "trash-can-outline"), 24), b.x + 8, y + 6, col(it["color"]), Mode::Ink);
+    const bool soon = it["soon"] | false;
+    draw::face(g, draw::BOLD18, soon ? GxEPD_RED : GxEPD_BLACK);
+    const char* when = str(it["when"]);
+    const int ww = draw::bounds(g, when).w;
+    draw::textRight(g, when, b.x + b.w - 8, y + 24);
+    draw::face(g, draw::BOLD18, GxEPD_BLACK);
+    draw::text(g, b.x + 40, y + 24, draw::fit(g, buf, sizeof(buf), str(it["name"]), b.w - 56 - ww));
+    y += 36;
+    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
+  }
+  return y - b.y;
+}
+
+// Air quality: a dot in each reading's colour (green good, yellow fair, red
+// poor), its name, its value, and the level's word.
+int airQuality(Gfx& g, JsonObjectConst d, Box b) {
+  JsonArrayConst items = d["items"];
+  if (items.size() == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + 20, str(d["empty"], "No readings"));
+    return 28;
+  }
+  int y = b.y;
+  char buf[48];
+  const bool levels = b.w >= 300;
+  for (JsonObjectConst it : items) {
+    if (y + 30 > draw::PANEL_H - 24) break;
+    const uint16_t c = col(it["color"]);
+    g.fillCircle(b.x + 16, y + 15, 7, c);
+    g.drawCircle(b.x + 16, y + 15, 7, GxEPD_BLACK);
+    int right = b.x + b.w - 8;
+    if (levels && *str(it["level"])) {
+      draw::face(g, draw::REG18, GxEPD_BLACK);
+      draw::textRight(g, str(it["level"]), right, y + 21);
+      right -= 52;
+    }
+    draw::face(g, draw::BOLD18, c == GxEPD_YELLOW ? GxEPD_BLACK : c);
+    const char* v = str(it["value"]);
+    const int vw = draw::bounds(g, v).w;
+    draw::textRight(g, v, right, y + 21);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 32, y + 21, draw::fit(g, buf, sizeof(buf), str(it["name"]), right - vw - 8 - (b.x + 32)));
+    y += 30;
+    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 2);
+  }
+  return y - b.y + 2;
+}
+
 // =============================================================================
 // A section: its type's drawing, in its box; returns the height it used.
 // =============================================================================
@@ -1182,6 +1335,8 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   if (!strcmp(type, "cameras")) return cameras(g, s, d, b);
   // A gap, to move what follows down the column.
   if (!strcmp(type, "spacer")) return d["height"] | 0;
+  // A message with nothing to say takes no room, heading and all.
+  if (!strcmp(type, "message") && d["lines"].size() == 0) return 0;
   // The rest: an optional label, then the content.
   const int lh = label(g, s, b);
   Box c{b.x, b.y + lh, b.w};
@@ -1196,6 +1351,10 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   else if (!strcmp(type, "media")) h = media(g, d, c);
   else if (!strcmp(type, "transport")) h = transport(g, d, c);
   else if (!strcmp(type, "announcements")) h = announcements(g, d, c);
+  else if (!strcmp(type, "guestWifi")) h = guestWifi(g, d, c);
+  else if (!strcmp(type, "message")) h = message(g, d, c);
+  else if (!strcmp(type, "bins")) h = bins(g, d, c);
+  else if (!strcmp(type, "airQuality")) h = airQuality(g, d, c);
   return lh + h + 6;
 }
 

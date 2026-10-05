@@ -67,6 +67,9 @@ static const char* asciiFor(uint32_t cp) {
     case 0x201C: case 0x201D: case 0x201E: case 0x2033: return "\"";
     case 0x2026: return "...";
     case 0x2022: return "-";                                         // bullet
+    case 0xB5: return "u";                                           // micro (ug/m3)
+    case 0xB2: case 0x2082: return "2";                              // squared, CO2's subscript
+    case 0xB3: case 0x2083: return "3";                              // cubed
     default: return "";
   }
 }

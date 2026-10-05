@@ -85,6 +85,8 @@ int main(int argc, char** argv) {
   expect("Wait\xE2\x80\xA6", "Wait...");
   expect("42 \xC2\xB7 City", "42  City");                              // left out, as before
   expect("21\xC2\xB0" "C", "21C");
+  expect("7.6 \xC2\xB5g/m\xC2\xB3", "7.6 ug/m3");                      // air quality units
+  expect("CO\xE2\x82\x82", "CO2");
   expect("broken \xE2\x80", "broken ");                              // a cut-off character
   if (failed) return 1;
   printf("system screens rendered, text checks passed\n");
