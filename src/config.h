@@ -59,7 +59,9 @@ const int BATT_CRITICAL_PCT = 2;
 
 // The Spectra-6 panel can still be finishing its physical refresh when
 // hibernate() returns; cutting power too soon leaves a partial image.
-const int PRE_SLEEP_DELAY_MS = 2500;
+// 2.5 s was a little short on real panels: power went while it was
+// still painting.
+const int PRE_SLEEP_DELAY_MS = 3500;
 // A press held this long is a long press.
 const int LONG_PRESS_MS = 1000;
 
