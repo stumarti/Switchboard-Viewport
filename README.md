@@ -4,6 +4,9 @@
 
 Switchboard Viewport turns a **Seeed reTerminal E1002** into a Home Assistant wall display. The E1002 has a 7.3" Spectra 6 colour e-ink panel, three buttons and a battery. The display shows the weather, energy, heating, security, calendar, who's home and the next bus, and it reads from across the room like a printed page. There's no glow, no fan, no cable and no tablet to keep charged.
 
+<p><img src="docs/images/fridge-status.jpg" width="800" alt="The viewport on a kitchen fridge, beside a Switchboard remote: the weather, the energy, what's happening now and tomorrow's bins"></p>
+<sub>On a kitchen fridge, beside a Switchboard remote. Below, each screen as the firmware draws it.</sub>
+
 <p>
   <img src="docs/images/status.png" width="400" alt="Status: weather, energy, the home battery, what needs attention, today">
   <img src="docs/images/heating.png" width="400" alt="Heating: each zone against its setpoint">
