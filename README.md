@@ -4,6 +4,9 @@
 
 Switchboard Viewport turns a **Seeed reTerminal E1002** into a Home Assistant wall display. The E1002 has a 7.3" Spectra 6 colour e-ink panel, three buttons and a battery. The display shows the weather, energy, heating, security, calendar, who's home and the next bus, and it reads from across the room like a printed page. There's no glow, no fan, no cable and no tablet to keep charged.
 
+<p><img src="docs/images/fridge-status.jpg" width="800" alt="The viewport on a kitchen fridge, beside a Switchboard remote: the weather, the energy, what's happening now and tomorrow's bins"></p>
+<sub>On a kitchen fridge, beside a Switchboard remote. Below, each screen as the firmware draws it.</sub>
+
 <p>
   <img src="docs/images/status.png" width="400" alt="Status: weather, energy, the home battery, what needs attention, today">
   <img src="docs/images/heating.png" width="400" alt="Heating: each zone against its setpoint">
@@ -36,6 +39,9 @@ Build its screens in [Switchboard Server](https://github.com/stumarti/Switchboar
 - **Calendar, people, now playing, room temperatures, bus and train departures, announcements**, plus a meeting room sign and a room finder for the office.
 - **Around the house:** the next bin collection ("Put out tonight: Recycling"), air quality and pollen in green, yellow or red, a guest Wi-Fi QR code to scan, and messages of your own with live values filled in.
 - **In the office:** a sign per meeting room, its calendar read straight from a Google Calendar, Outlook / Microsoft 365 or iCloud link, changing two minutes ahead of each meeting and quiet at nights and weekends. Paste a list of rooms into the server to set up a whole floor ([Viewports in the office](https://stumarti.github.io/Switchboard/manual/viewport/office.html)).
+
+<p><img src="docs/images/reception-builder.png" width="800" alt="Switchboard Server's layout builder with a reception screen: a guest Wi-Fi QR code, a welcome message and the office's air quality in the live preview"></p>
+<sub>A reception screen in Switchboard Server's layout builder: guest Wi-Fi, a welcome and the office's air, previewed live before it reaches the display.</sub>
 
 <p><img src="docs/images/office-door.jpg" width="800" alt="A render of a viewport on a glass meeting-room door, showing the Boardroom in use until 12:00"></p>
 <sub>A render: a viewport on a meeting room's glass door, showing the screen as this firmware draws it.</sub>
