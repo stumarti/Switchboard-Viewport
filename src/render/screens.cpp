@@ -653,6 +653,32 @@ int cameras(Gfx& g, JsonObjectConst s, JsonObjectConst d, Box b) {
 // =============================================================================
 
 // A small capitalised label over a section that doesn't word its own.
+// A photo (from Immich, via the server): the server's six-colour picture at
+// exactly this size, fetched beforehand like an icon; its caption under it.
+// Before it has arrived (or with no photo), a frame saying why.
+const int PHOTO_CAPTION_H = 22;
+const int PHOTO_BOTTOM = draw::PANEL_H - 30;  // clear of the footer
+
+int photo(Gfx& g, JsonObjectConst d, Box b, int h) {
+  const char* caption = str(d["caption"]);
+  const int imgH = *caption ? h - PHOTO_CAPTION_H : h;
+  const char* src = str(d["src"]);
+  const uint8_t* pic = *src ? icons::picture(src, b.w, imgH) : nullptr;
+  if (pic) {
+    draw::picture(g, pic, b.w, imgH, b.x, b.y);
+  } else {
+    g.drawRect(b.x, b.y, b.w, imgH, GxEPD_BLACK);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::textCentered(g, *src ? "Photo" : str(d["empty"], "No photo"), b.x, b.w, b.y + imgH / 2 + 6);
+  }
+  if (*caption) {
+    char buf[96];
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + imgH + 17, draw::fit(g, buf, sizeof(buf), caption, b.w - 16));
+  }
+  return h;
+}
+
 int label(Gfx& g, JsonObjectConst s, Box b) {
   const char* t = str(s["title"]);
   if (!*t) return 0;
@@ -1337,6 +1363,14 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   if (!strcmp(type, "spacer")) return d["height"] | 0;
   // A message with nothing to say takes no room, heading and all.
   if (!strcmp(type, "message") && d["lines"].size() == 0) return 0;
+  // A photo: its height (heading included), or the rest of its column.
+  if (!strcmp(type, "photo")) {
+    const int lh = label(g, s, b);
+    const int want = d["height"] | 0;
+    int h = want > 0 ? want - lh : PHOTO_BOTTOM - (b.y + lh);
+    if (h < 40) h = 40;
+    return lh + photo(g, d, {b.x, b.y + lh, b.w}, h) + 6;
+  }
   // The rest: an optional label, then the content.
   const int lh = label(g, s, b);
   Box c{b.x, b.y + lh, b.w};
@@ -1386,8 +1420,37 @@ int columnsOf(const char* tpl, Box* out) {
   return 1;
 }
 
+// A photo behind the whole screen (the server's 800x480 picture). The
+// sections then sit on white cards over it (sectionsScreen), and its caption
+// in a white box at the bottom left.
+const int CARD_GAP = 6;
+void photoBackground(Gfx& g, JsonObjectConst bg) {
+  const char* src = str(bg["src"]);
+  const uint8_t* pic = *src ? icons::picture(src, draw::PANEL_W, draw::PANEL_H) : nullptr;
+  if (pic) {
+    draw::picture(g, pic, draw::PANEL_W, draw::PANEL_H, 0, 0);
+    return;
+  }
+  draw::face(g, draw::REG18, GxEPD_BLACK);
+  draw::textCentered(g, *src ? "Photo" : str(bg["empty"], "No photo"), 0, draw::PANEL_W, draw::PANEL_H / 2);
+}
+
+void photoCaption(Gfx& g, JsonObjectConst bg) {
+  const char* caption = str(bg["caption"]);
+  if (!*caption) return;
+  char buf[96];
+  draw::face(g, draw::REG18, GxEPD_BLACK);
+  draw::fit(g, buf, sizeof(buf), caption, 420);
+  const draw::Bounds tb = draw::bounds(g, buf);
+  g.fillRect(4, draw::PANEL_H - 30, tb.w + 16, 26, GxEPD_WHITE);
+  draw::text(g, 12, draw::PANEL_H - 11, buf);
+}
+
 void sectionsScreen(Gfx& g, JsonObjectConst d) {
   const char* tpl = str(d["template"], "single");
+  JsonObjectConst bg = d["background"];
+  const bool onPhoto = !bg.isNull();
+  if (onPhoto) photoBackground(g, bg);
   Box cols[3];
   const int n = columnsOf(tpl, cols);
   // Every section on the screen, for the alarm's summary.
@@ -1397,9 +1460,10 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
     for (JsonObjectConst s : column) flat.add(s);
   const JsonArrayConst siblings = flat;
 
-  if (!strcmp(tpl, "sidebar")) draw::dottedV(g, 250, 0, draw::PANEL_H);
-  if (!strcmp(tpl, "columns")) draw::dottedV(g, 404, 0, draw::PANEL_H);
-  if (!strcmp(tpl, "triple")) {
+  // The dividers, except over a photo (the cards part the columns there).
+  if (!onPhoto && !strcmp(tpl, "sidebar")) draw::dottedV(g, 250, 0, draw::PANEL_H);
+  if (!onPhoto && !strcmp(tpl, "columns")) draw::dottedV(g, 404, 0, draw::PANEL_H);
+  if (!onPhoto && !strcmp(tpl, "triple")) {
     g.drawFastVLine(244, 0, draw::PANEL_H, GxEPD_BLACK);
     g.drawFastVLine(530, 0, draw::PANEL_H, GxEPD_BLACK);
   }
@@ -1416,10 +1480,22 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
       if (b.y >= draw::PANEL_H) break;
       Box sb = b;
       if (n == 1 && !strcmp(str(s["type"]), "heating")) sb = {0, b.y, 800};
+      if (onPhoto) {
+        // Measured first (drawn on nothing), then a white card that size
+        // under it, so it reads over the photo.
+        NullCanvas measure;
+        const int h = section(measure, s, sb, siblings);
+        if (h <= 0) continue;
+        g.fillRect(sb.x, sb.y, sb.w, h, GxEPD_WHITE);
+        section(g, s, sb, siblings);
+        b.y += h + CARD_GAP;
+        continue;
+      }
       b.y += section(g, s, sb, siblings);
     }
     ++ci;
   }
+  if (onPhoto) photoCaption(g, bg);
 }
 
 // --- Meeting room and room finder, as the server's preview draws them -------
@@ -1623,6 +1699,11 @@ void drawScreen(Gfx& g, JsonObjectConst screen, const Ctx& ctx) {
     return;
   }
   sectionsScreen(g, screen);
+  // Over a photo, the footer on a white card of its own.
+  if (!screen["background"].isNull()) {
+    const int w = 190 + (ctx.markCount > 1 ? ctx.markCount * 22 + 16 : 0);
+    g.fillRect(draw::PANEL_W - w, draw::PANEL_H - 32, w, 32, GxEPD_WHITE);
+  }
   footer(g, ctx);
 }
 

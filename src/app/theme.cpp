@@ -141,6 +141,10 @@ bool namedLookup(const char* name, int size, draw::Icon& out) {
   return true;
 }
 
+// Free flash wanted before more pictures are kept: room for a few whole-panel
+// photos (192 KB each).
+constexpr size_t PICTURE_ROOM = 1024 * 1024;
+
 String pictureKey(const char* src, int w, int h) {
   // A short stable name for the cache: FNV-1a of the source.
   uint32_t hash = 2166136261u;
@@ -218,6 +222,13 @@ void fetchNeeds() {
     store::write(namedPath(n.name, n.size).c_str(), b.bytes.data(), b.bytes.size());
     auto it = g_named.insert_or_assign(namedKey(n.name, n.size), std::move(b)).first;
     parseSingle(it->second);
+  }
+  // Pictures pile up on the flash (album art per track, a photo per change):
+  // when room runs short, the old ones go. Those this screen already uses
+  // stay loaded in memory for this draw.
+  if (icons::pictureNeedCount() && store::freeBytes() < PICTURE_ROOM) {
+    LOGF("Picture cache full (%u bytes free): clearing it\n", static_cast<unsigned>(store::freeBytes()));
+    store::eraseDir("/art");
   }
   for (int i = 0; i < icons::pictureNeedCount(); ++i) {
     const icons::PictureNeed& p = icons::pictureNeed(i);

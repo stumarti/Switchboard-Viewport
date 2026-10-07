@@ -226,6 +226,9 @@ const uint8_t* picture(const char* src, int w, int h) {
   if (!src || !*src) return nullptr;
   const uint8_t* p = g_picture ? g_picture(src, w, h) : nullptr;
   if (!p && g_collecting && g_pictureNeedCount < MAX_PICTURE_NEEDS && strlen(src) < sizeof(g_pictureNeeds[0].src)) {
+    // Once each (a section over a photo is measured, then drawn).
+    for (int i = 0; i < g_pictureNeedCount; ++i)
+      if (g_pictureNeeds[i].w == w && g_pictureNeeds[i].h == h && !strcmp(g_pictureNeeds[i].src, src)) return p;
     PictureNeed& n = g_pictureNeeds[g_pictureNeedCount++];
     snprintf(n.src, sizeof(n.src), "%s", src);
     n.w = static_cast<uint16_t>(w);
