@@ -40,6 +40,9 @@ Build its screens in [Switchboard Server](https://github.com/stumarti/Switchboar
 - **Around the house:** the next bin collection ("Put out tonight: Recycling"), air quality and pollen in green, yellow or red, a guest Wi-Fi QR code to scan, and messages of your own with live values filled in.
 - **In the office:** a sign per meeting room, its calendar read straight from a Google Calendar, Outlook / Microsoft 365 or iCloud link, changing two minutes ahead of each meeting and quiet at nights and weekends. Paste a list of rooms into the server to set up a whole floor ([Viewports in the office](https://stumarti.github.io/Switchboard/manual/viewport/office.html)).
 
+<p><img src="docs/images/reception-builder.png" width="800" alt="Switchboard Server's layout builder with a reception screen: a guest Wi-Fi QR code, a welcome message and the office's air quality in the live preview"></p>
+<sub>A reception screen in Switchboard Server's layout builder: guest Wi-Fi, a welcome and the office's air, previewed live before it reaches the display.</sub>
+
 <p><img src="docs/images/office-door.jpg" width="800" alt="A render of a viewport on a glass meeting-room door, showing the Boardroom in use until 12:00"></p>
 <sub>A render: a viewport on a meeting room's glass door, showing the screen as this firmware draws it.</sub>
 
