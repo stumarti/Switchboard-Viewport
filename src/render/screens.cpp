@@ -1731,24 +1731,26 @@ void footer(Gfx& g, const Ctx& ctx) {
 // --- Photo frame ---------------------------------------------------------------
 //
 // An Immich photo filling the screen (the server's picture at its size),
-// and a few lines over it in white, outlined in black so they read on any
-// photo, stacked from a corner: the date (larger), the weather, the next
+// and a few lines over it in white (outlined in black, unless the layout
+// turns that off, so they read on any photo), stacked from a corner: the date (larger), the weather, the next
 // event, a message; the photo's caption last, small. No footer: the battery
 // shows only when it's low.
 
-// White text with a black edge around it.
-void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size) {
+// White text, with a black edge around it if `outline`.
+void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size, bool outline) {
   static const int8_t OFF[][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}, {0, 2}, {2, 0}, {-2, 0}, {0, -2}};
   draw::face(g, f, GxEPD_BLACK, size);
-  for (const auto& o : OFF) draw::text(g, x + o[0], y + o[1], s);
+  if (outline)
+    for (const auto& o : OFF) draw::text(g, x + o[0], y + o[1], s);
   draw::face(g, f, GxEPD_WHITE, size);
   draw::text(g, x, y, s);
 }
 
-void outlinedIcon(Gfx& g, const draw::Icon& ic, int x, int y) {
+void outlinedIcon(Gfx& g, const draw::Icon& ic, int x, int y, bool outline) {
   if (!ic) return;
   static const int8_t OFF[][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
-  for (const auto& o : OFF) draw::icon(g, ic, x + o[0], y + o[1], GxEPD_BLACK, Mode::Ink);
+  if (outline)
+    for (const auto& o : OFF) draw::icon(g, ic, x + o[0], y + o[1], GxEPD_BLACK, Mode::Ink);
   draw::icon(g, ic, x, y, GxEPD_WHITE, Mode::Ink);
 }
 
@@ -1764,6 +1766,7 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
   }
 
   const bool large = !strcmp(str(d["size"]), "large");
+  const bool outline = d["outline"] | true;
   const char* corner = str(d["corner"], "bottomLeft");
   const bool right = !strcmp(corner, "bottomRight") || !strcmp(corner, "topRight");
   const bool top = !strcmp(corner, "topLeft") || !strcmp(corner, "topRight");
@@ -1804,8 +1807,8 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     const int tw = draw::bounds(g, buf).w;
     const int x0 = right ? W - MARGIN_X - tw - iconW : MARGIN_X;
     const int base = y + l.h - (l.h - (l.size > 1 ? 44 : l.face == draw::BOLD24 ? 22 : 16)) / 2 - 2;
-    if (*l.icon) outlinedIcon(g, icons::named(l.icon, l.iconSize), x0, base - l.iconSize + 4);
-    outlinedText(g, x0 + iconW, base, buf, l.face, l.size);
+    if (*l.icon) outlinedIcon(g, icons::named(l.icon, l.iconSize), x0, base - l.iconSize + 4, outline);
+    outlinedText(g, x0 + iconW, base, buf, l.face, l.size, outline);
     y += l.h;
   }
 
@@ -1816,7 +1819,7 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     draw::face(g, draw::BOLD18, GxEPD_WHITE);
     const int bw = draw::bounds(g, b).w;
     const bool leftTop = top && right;
-    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, MARGIN_Y + 18, b, draw::BOLD18, 1);
+    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, MARGIN_Y + 18, b, draw::BOLD18, 1, outline);
   }
 }
 
