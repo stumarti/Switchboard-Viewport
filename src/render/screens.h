@@ -30,6 +30,9 @@ struct Ctx {
   // A bar between the footer's groups (carousel | refresh | battery). Off
   // only for the comparison with the kitchen panel, which had none.
   bool footerBars = true;
+  // The layout hangs portrait: the screen is 480x800 (the display's GFX
+  // turned to match), its columns drawn as bands one under the other.
+  bool portrait = false;
 };
 
 // A screen as /api/viewports/me/state?screen=<id> returns it (its `data`).

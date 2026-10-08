@@ -9,6 +9,13 @@
 
 namespace draw {
 
+int PANEL_W = 800;
+int PANEL_H = 480;
+void setPortrait(bool portrait) {
+  PANEL_W = portrait ? 480 : 800;
+  PANEL_H = portrait ? 800 : 480;
+}
+
 uint16_t color(int idx) {
   static const uint16_t P[] = {GxEPD_WHITE, GxEPD_BLACK, GxEPD_RED, GxEPD_YELLOW, GxEPD_GREEN, GxEPD_BLUE};
   return idx >= 0 && idx < 6 ? P[idx] : GxEPD_BLACK;

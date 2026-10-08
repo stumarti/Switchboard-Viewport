@@ -82,6 +82,8 @@ int main(int argc, char** argv) {
     for (int k = 0; k < 3; ++k) ctx.marks[k] = MARKS[k];
     ctx.markCount = 3;
     ctx.current = doc["current"] | 0;
+    // A layout that hangs portrait (rotation 90 or 270): 480x800.
+    ctx.portrait = doc["portrait"] | false;
     JsonObjectConst screen = doc["data"];
 
     // The collecting pass: which icons would have to be fetched.
@@ -90,7 +92,7 @@ int main(int argc, char** argv) {
     screens::drawScreen(none, screen, ctx);
     icons::endCollect();
 
-    Canvas c;
+    Canvas c(ctx.portrait ? 480 : 800, ctx.portrait ? 800 : 480);
     screens::drawScreen(c, screen, ctx);
     std::string name = argv[i];
     name = name.substr(name.find_last_of('/') + 1);

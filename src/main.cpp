@@ -62,6 +62,7 @@ RTC_DATA_ATTR char rtcPanelKey[64] = "";  // which error / pairing status
 RTC_DATA_ATTR char rtcScreen[64] = "";    // the screen showing
 RTC_DATA_ATTR char rtcEtag[48] = "";      // its state's ETag
 RTC_DATA_ATTR bool rtcQuiet = false;
+RTC_DATA_ATTR int rtcRotation = 0;        // how the screen showing was turned
 RTC_DATA_ATTR int64_t rtcLastPress = 0;
 RTC_DATA_ATTR int64_t rtcLastChange = 0;
 RTC_DATA_ATTR uint32_t rtcSleep = 0;  // the last plan, for wakes that can't ask
@@ -419,7 +420,9 @@ void setup() {
   // ---- The screen's state ----
   // A button press, another screen, or something else on the panel: draw
   // whatever comes. Otherwise only when it changed.
-  const bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen;
+  // How the display hangs (the layout's rotation): turned, it's redrawn.
+  const int rotation = layout["rotation"] | 0;
+  const bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen || rotation != rtcRotation;
   const String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
   server::Response r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), force ? nullptr : rtcEtag);
   JsonDocument state;
@@ -473,6 +476,7 @@ void setup() {
   ctx.markCount = static_cast<int>(marks.size() < 12 ? marks.size() : 12);
   for (int i = 0; i < ctx.markCount; ++i) ctx.marks[i] = marks[i].c_str();
   ctx.current = index;
+  ctx.portrait = rotation == 90 || rotation == 270;
   JsonObjectConst data = state["data"];
   {
     screens::NullCanvas none;
@@ -483,8 +487,9 @@ void setup() {
   }
   wifi::off();  // nothing more to fetch: save the battery while the panel refreshes
   LOGF("Drawing %s\n", screenId.c_str());
-  display::show([&](draw::Gfx& g) { screens::drawScreen(g, data, ctx); });
+  display::show([&](draw::Gfx& g) { screens::drawScreen(g, data, ctx); }, rotation);
   remember(Panel::Screen, "");
+  rtcRotation = rotation;
   snprintf(rtcScreen, sizeof(rtcScreen), "%s", screenId.c_str());
   snprintf(rtcEtag, sizeof(rtcEtag), "%s", (state["etag"] | r.etag.c_str()));
   rtcQuiet = quiet;

@@ -29,10 +29,12 @@ void begin() {
   g_begun = true;
 }
 
-void show(const std::function<void(draw::Gfx&)>& paint) {
+void show(const std::function<void(draw::Gfx&)>& paint, int rotation) {
   begin();
   g_panel.init(115200);
-  g_panel.setRotation(0);
+  // The display turned clockwise: the picture turned back the other way.
+  // (GFX rotation 1 puts the panel's top edge, the buttons, on the left.)
+  g_panel.setRotation((4 - (rotation / 90) % 4) % 4);
   g_panel.setFullWindow();
   g_panel.firstPage();
   do {

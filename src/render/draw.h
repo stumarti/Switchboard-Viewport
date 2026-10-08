@@ -16,8 +16,12 @@ namespace draw {
 
 using Gfx = Adafruit_GFX;
 
-constexpr int PANEL_W = 800;
-constexpr int PANEL_H = 480;
+// The screen being drawn: 800x480 landscape, or 480x800 when its layout
+// hangs portrait (screens::drawScreen sets it, and puts it back to
+// landscape after; the system screens are always landscape).
+extern int PANEL_W;
+extern int PANEL_H;
+void setPortrait(bool portrait);
 
 // The panel's palette, by the index Switchboard Server uses: 0 white,
 // 1 black, 2 red, 3 yellow, 4 green, 5 blue.
