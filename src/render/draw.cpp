@@ -11,9 +11,15 @@ namespace draw {
 
 int PANEL_W = 800;
 int PANEL_H = 480;
+static int g_long = 800, g_short = 480;
 void setPortrait(bool portrait) {
-  PANEL_W = portrait ? 480 : 800;
-  PANEL_H = portrait ? 800 : 480;
+  PANEL_W = portrait ? g_short : g_long;
+  PANEL_H = portrait ? g_long : g_short;
+}
+void setScreenShape(int longSide, int shortSide) {
+  g_long = longSide;
+  g_short = shortSide;
+  setPortrait(false);
 }
 
 uint16_t color(int idx) {

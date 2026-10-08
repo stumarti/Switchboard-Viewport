@@ -22,6 +22,10 @@ using Gfx = Adafruit_GFX;
 extern int PANEL_W;
 extern int PANEL_H;
 void setPortrait(bool portrait);
+// The screen's shape, landscape: 800x480 on the E1002. A board with another
+// panel sets its own before drawing anything (the E1004's 4:3 panel draws
+// 800x600, doubled to its 1600x1200; portrait, 600x800).
+void setScreenShape(int longSide, int shortSide);
 
 // The panel's palette, by the index Switchboard Server uses: 0 white,
 // 1 black, 2 red, 3 yellow, 4 green, 5 blue.
