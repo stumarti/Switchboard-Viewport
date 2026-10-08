@@ -224,6 +224,10 @@ void setPictureLookup(PictureLookup lookup) { g_picture = lookup; }
 
 const uint8_t* picture(const char* src, int w, int h) {
   if (!src || !*src) return nullptr;
+  // Fetched (and kept) at the panel's own resolution where it's finer than
+  // the screen's (draw::fine): the E1004's full-resolution photos.
+  w *= draw::fine.scale;
+  h *= draw::fine.scale;
   const uint8_t* p = g_picture ? g_picture(src, w, h) : nullptr;
   if (!p && g_collecting && g_pictureNeedCount < MAX_PICTURE_NEEDS && strlen(src) < sizeof(g_pictureNeeds[0].src)) {
     // Once each (a section over a photo is measured, then drawn).

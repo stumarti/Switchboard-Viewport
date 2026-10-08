@@ -282,7 +282,15 @@ void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
   else oneBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode);
 }
 
+FinePictures fine;
+
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y) {
+  // A finer picture (icons::picture fetched it `fine.scale` times the size):
+  // straight onto the panel.
+  if (fine.scale > 1 && fine.draw) {
+    fine.draw(bits, w * fine.scale, h * fine.scale, x, y);
+    return;
+  }
   fourBit(g, bits, w, h, x, y, GxEPD_BLACK, Mode::Opaque);
 }
 

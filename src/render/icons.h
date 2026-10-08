@@ -43,6 +43,7 @@ void setLookups(PackLookup pack, NamedLookup named);
 // media player's picture and the size drawn; fetched beforehand like icons.
 using PictureLookup = const uint8_t* (*)(const char* src, int w, int h);
 void setPictureLookup(PictureLookup lookup);
+// (w, h: its size on the screen; it's fetched draw::fine.scale times that.)
 const uint8_t* picture(const char* src, int w, int h);
 
 // The collecting pass: while on, every icon and picture asked for that

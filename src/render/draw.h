@@ -85,8 +85,21 @@ struct Icon {
 enum class Mode : uint8_t { Opaque, Ink, Mask };
 
 void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode = Mode::Opaque);
-// A 4-bit picture (album art in the server's "spectra" format), as is.
+// A 4-bit picture (album art, a photo: the server's "spectra" format), `w`
+// by `h` on the screen at x, y.
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y);
+
+// Pictures finer than the screen. The E1004 draws the viewport's screens at
+// twice the size, but a photo blown up like that would look coarse: its
+// pictures are fetched `scale` times the size they take on the screen, and
+// `draw` puts them on the panel at its full resolution (bits: the picture,
+// w x h; x, y: where it goes, in the screen's coordinates). The E1002:
+// scale 1, no draw.
+struct FinePictures {
+  int scale = 1;
+  void (*draw)(const uint8_t* bits, int w, int h, int x, int y) = nullptr;
+};
+extern FinePictures fine;
 
 // The panel's dotted rules: 2 px of ink every 7 px.
 void dottedV(Gfx& g, int x, int y0, int y1);
