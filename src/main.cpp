@@ -477,6 +477,9 @@ void setup() {
   for (int i = 0; i < ctx.markCount; ++i) ctx.marks[i] = marks[i].c_str();
   ctx.current = index;
   ctx.portrait = rotation == 90 || rotation == 270;
+  // Before the collecting pass: on a 13.3" board, the screen's size and how
+  // fine its pictures come depend on it.
+  display::use(rotation, strcmp(layout["boardSize"] | "large", "small") != 0);
   JsonObjectConst data = state["data"];
   {
     screens::NullCanvas none;

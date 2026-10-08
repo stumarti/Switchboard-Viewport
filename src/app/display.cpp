@@ -43,6 +43,8 @@ void show(const std::function<void(draw::Gfx&)>& paint, int rotation) {
   g_panel.hibernate();
 }
 
+void use(int, bool) {}
+
 void clear() {
   show([](draw::Gfx& g) { g.fillScreen(GxEPD_WHITE); });
 }

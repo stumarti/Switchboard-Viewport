@@ -37,6 +37,9 @@ uint16_t color(int idx);
 //   BOLD82 42pt bold (the big temperature, ON/OFF)
 enum Face : uint8_t { REG18 = 0, BOLD18, BOLD24, BOLD82, FACE_COUNT };
 const GFXfont* font(Face f);
+// The panel's own face (whatever the theme sets): a board with a finer
+// panel draws text in the same face made at its resolution.
+const GFXfont* builtInFont(Face f);
 // Overrides (the theme's faces); nullptr restores the built-in one.
 void setFont(Face f, const GFXfont* override_);
 

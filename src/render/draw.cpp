@@ -36,6 +36,7 @@ static const GFXfont* const BUILT_IN[FACE_COUNT] = {
 static const GFXfont* g_override[FACE_COUNT] = {nullptr, nullptr, nullptr, nullptr};
 
 const GFXfont* font(Face f) { return f < FACE_COUNT ? (g_override[f] ? g_override[f] : BUILT_IN[f]) : BUILT_IN[0]; }
+const GFXfont* builtInFont(Face f) { return f < FACE_COUNT ? BUILT_IN[f] : nullptr; }
 void setFont(Face f, const GFXfont* o) {
   if (f < FACE_COUNT) g_override[f] = o;
 }
