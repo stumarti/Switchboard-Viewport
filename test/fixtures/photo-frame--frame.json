@@ -1,0 +1,33 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-08T09:48:18.053Z",
+ "data": {
+  "kind": "photoFrame",
+  "title": "Frame",
+  "data": {
+   "src": "immich:a0000000-0000-4000-8000-000000000001",
+   "empty": "",
+   "caption": "Lahinch, Ireland \u2013 7 October 2019",
+   "corner": "bottomLeft",
+   "size": "normal",
+   "lines": [
+    {
+     "icon": "",
+     "text": "Wednesday 7 October",
+     "big": true
+    },
+    {
+     "icon": "weather-partly-cloudy",
+     "text": "16\u00b0C  Partly cloudy",
+     "big": false
+    },
+    {
+     "icon": "calendar-blank-outline",
+     "text": "14:00 Football practice",
+     "big": false
+    }
+   ]
+  },
+  "nextChangeInSec": null
+ }
+}

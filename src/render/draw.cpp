@@ -282,13 +282,22 @@ static void oneBit(Gfx& g, const uint8_t* bits, int w, int h, int x, int y, uint
   }
 }
 
-void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
+void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
   if (!ic.bits) return;
   if (ic.fourBit) fourBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode);
   else oneBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode);
 }
 
 FinePictures fine;
+
+void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
+  if (!ic.bits) return;
+  if (fine.scale > 1 && fine.icon) {
+    fine.icon(ic, x, y, tint, mode);
+    return;
+  }
+  iconPixels(g, ic, x, y, tint, mode);
+}
 
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y) {
   // A finer picture (icons::picture fetched it `fine.scale` times the size):

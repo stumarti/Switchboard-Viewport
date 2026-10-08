@@ -51,7 +51,7 @@ const uint8_t* picture(const char* src, int w, int h);
 // draw (screens.h).
 struct Need {
   char name[48];
-  uint8_t size;
+  uint16_t size;  // up to twice 96 on the E1004
 };
 struct PictureNeed {
   char src[256];

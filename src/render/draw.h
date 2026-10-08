@@ -78,6 +78,9 @@ struct Icon {
   uint16_t w = 0, h = 0;
   const uint8_t* bits = nullptr;
   bool fourBit = false;
+  // Its bits are at the panel's finer resolution (draw::fine.scale times
+  // the size it takes on the screen): fetched that size from the server.
+  bool fine = false;
   explicit operator bool() const { return bits != nullptr; }
 };
 
@@ -99,11 +102,19 @@ void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y);
 // `draw` puts them on the panel at its full resolution (bits: the picture,
 // w x h; x, y: where it goes, in the screen's coordinates). The E1002:
 // scale 1, no draw.
+//
+// Icons too: those fetched from the server come `scale` times the size
+// (Icon::fine); `icon` draws any icon at the panel's resolution (a built-in
+// one, at the screen's, it enlarges itself).
 struct FinePictures {
   int scale = 1;
   void (*draw)(const uint8_t* bits, int w, int h, int x, int y) = nullptr;
+  void (*icon)(const Icon& ic, int x, int y, uint16_t tint, Mode mode) = nullptr;
 };
 extern FinePictures fine;
+// An icon's pixels on `g` exactly as they are, w x h at x, y (what icon()
+// does without draw::fine): for a board drawing one at its own resolution.
+void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode);
 
 // The panel's dotted rules: 2 px of ink every 7 px.
 void dottedV(Gfx& g, int x, int y0, int y1);

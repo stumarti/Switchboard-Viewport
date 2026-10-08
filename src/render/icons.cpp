@@ -166,7 +166,7 @@ void noteNeed(const char* name, int size) {
   for (int i = 0; i < g_needCount; ++i)
     if (g_needs[i].size == size && !strcmp(g_needs[i].name, name)) return;
   snprintf(g_needs[g_needCount].name, sizeof(g_needs[0].name), "%s", name);
-  g_needs[g_needCount].size = static_cast<uint8_t>(size);
+  g_needs[g_needCount].size = static_cast<uint16_t>(size);
   ++g_needCount;
 }
 
@@ -216,7 +216,11 @@ draw::Icon named(const char* name, int size) {
     ic.fourBit = true;
     return ic;
   }
-  if (!(g_named && g_named(name, size, ic))) noteNeed(name, size);
+  // Fetched from the server: at the panel's finer resolution where it has
+  // one (draw::fine), drawn without enlarging.
+  const int fetched = size * draw::fine.scale;
+  if (!(g_named && g_named(name, fetched, ic))) noteNeed(name, fetched);
+  ic.fine = ic.bits && draw::fine.scale > 1;
   return ic;
 }
 
