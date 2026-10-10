@@ -290,9 +290,12 @@ void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) 
 }
 
 FinePictures fine;
+bool inPicture = false;
+bool seeThrough = false;
 
 void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
   if (!ic.bits) return;
+  if (seeThrough && mode == Mode::Opaque) mode = Mode::Ink;
   if (fine.scale > 1 && fine.icon) {
     fine.icon(ic, x, y, tint, mode);
     return;
@@ -307,7 +310,9 @@ void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y) {
     fine.draw(bits, w * fine.scale, h * fine.scale, x, y);
     return;
   }
+  inPicture = true;
   fourBit(g, bits, w, h, x, y, GxEPD_BLACK, Mode::Opaque);
+  inPicture = false;
 }
 
 void dottedV(Gfx& g, int x, int y0, int y1) {

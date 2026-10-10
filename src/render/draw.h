@@ -115,6 +115,12 @@ struct FinePictures {
   void (*icon)(const Icon& ic, int x, int y, uint16_t tint, Mode mode) = nullptr;
 };
 extern FinePictures fine;
+// Set while a picture is drawn: its white is part of it, not a background
+// (screens' see-through canvas over a photo keeps it).
+extern bool inPicture;
+// Set while sections are drawn see-through over a photo: an Opaque icon
+// draws only its ink, so the photo shows round it.
+extern bool seeThrough;
 // An icon's pixels on `g` exactly as they are, w x h at x, y (what icon()
 // does without draw::fine): for a board drawing one at its own resolution.
 void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode);

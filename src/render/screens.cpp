@@ -1435,8 +1435,62 @@ int columnsOf(const char* tpl, Box* out) {
 
 // A photo behind the whole screen (the server's 800x480 picture). The
 // sections then sit on white cards over it (sectionsScreen), and its caption
-// in a white box at the bottom left.
+// in a white box at the bottom left; or, with the layout's cards "none",
+// straight on the photo, see-through, a white edge round everything they
+// draw so it reads.
 const int CARD_GAP = 6;
+const int HALO = 2;  // the white edge, px each side
+
+// What's drawn on it goes on `target`, but not its white (a section
+// clearing its box, an icon's background), so the photo shows round it; a
+// picture keeps its white. Text goes on as `target` writes it (a board's
+// finer face).
+class SeeThrough : public Gfx {
+ public:
+  explicit SeeThrough(Gfx& target) : Gfx(target.width(), target.height()), t_(target) {}
+  void drawPixel(int16_t x, int16_t y, uint16_t c) override {
+    if (c != GxEPD_WHITE || draw::inPicture) t_.drawPixel(x, y, c);
+  }
+  size_t write(uint8_t c) override {
+    t_.setFont(gfxFont);
+    t_.setTextSize(textsize_x);
+    t_.setTextColor(textcolor);
+    t_.setTextWrap(wrap);
+    t_.setCursor(cursor_x, cursor_y);
+    const size_t n = t_.write(c);
+    cursor_x = t_.getCursorX();
+    cursor_y = t_.getCursorY();
+    return n;
+  }
+
+ private:
+  Gfx& t_;
+};
+
+// What's drawn on it becomes a white patch HALO px bigger all round on
+// `target`: drawn first, under the same thing drawn see-through.
+class Halo : public Gfx {
+ public:
+  explicit Halo(Gfx& target) : Gfx(target.width(), target.height()), t_(target) {}
+  void drawPixel(int16_t x, int16_t y, uint16_t c) override {
+    if (c != GxEPD_WHITE) t_.fillRect(x - HALO, y - HALO, 2 * HALO + 1, 2 * HALO + 1, GxEPD_WHITE);
+  }
+
+ private:
+  Gfx& t_;
+};
+
+// `paint` straight on the photo: its white edge, then it, see-through.
+template <typename F>
+void drawOnPhoto(Gfx& g, F paint) {
+  Halo halo(g);
+  paint(static_cast<Gfx&>(halo));
+  SeeThrough clear(g);
+  draw::seeThrough = true;
+  paint(static_cast<Gfx&>(clear));
+  draw::seeThrough = false;
+}
+bool seeThroughOn(JsonObjectConst screen) { return !strcmp(str(screen["background"]["cards"]), "none"); }
 void photoBackground(Gfx& g, JsonObjectConst bg) {
   const char* src = str(bg["src"]);
   const uint8_t* pic = *src ? icons::picture(src, draw::PANEL_W, draw::PANEL_H) : nullptr;
@@ -1465,6 +1519,7 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
   const char* tpl = str(d["template"], "single");
   JsonObjectConst bg = d["background"];
   const bool onPhoto = !bg.isNull();
+  const bool cards = onPhoto && !seeThroughOn(d);
   if (onPhoto) photoBackground(g, bg);
   Box cols[3];
   const int n = columnsOf(tpl, cols);
@@ -1522,11 +1577,16 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
       if (onPhoto) {
         // Measured first (drawn on nothing), then a white card that size
         // under it, so it reads over the photo.
+        // (See-through: no card; its white edge, then it, over the photo.)
         NullCanvas measure;
         const int h = section(measure, s, sb, siblings);
         if (h <= 0) continue;
-        g.fillRect(sb.x, sb.y, sb.w, h, GxEPD_WHITE);
-        section(g, s, sb, siblings);
+        if (cards) {
+          g.fillRect(sb.x, sb.y, sb.w, h, GxEPD_WHITE);
+          section(g, s, sb, siblings);
+        } else {
+          drawOnPhoto(g, [&](Gfx& on) { section(on, s, sb, siblings); });
+        }
         b.y += h + CARD_GAP;
         continue;
       }
@@ -1536,7 +1596,8 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
     ++ci;
   }
   g_reserve = 0;
-  if (onPhoto) photoCaption(g, bg);
+  if (cards) photoCaption(g, bg);
+  else if (onPhoto) drawOnPhoto(g, [&](Gfx& on) { photoCaption(on, bg); });
 }
 
 // --- Meeting room and room finder, as the server's preview draws them -------
@@ -1847,7 +1908,11 @@ static void drawScreenAs(Gfx& g, JsonObjectConst screen, const Ctx& ctx) {
     return;
   }
   sectionsScreen(g, screen);
-  // Over a photo, the footer on a white card of its own.
+  // Over a photo, the footer on a white card of its own, or see-through.
+  if (!screen["background"].isNull() && seeThroughOn(screen)) {
+    drawOnPhoto(g, [&](Gfx& on) { footer(on, ctx); });
+    return;
+  }
   if (!screen["background"].isNull()) {
     const int w = 190 + (ctx.markCount > 1 ? ctx.markCount * 22 + 16 : 0);
     g.fillRect(draw::PANEL_W - w, draw::PANEL_H - 32, w, 32, GxEPD_WHITE);
