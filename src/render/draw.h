@@ -16,8 +16,16 @@ namespace draw {
 
 using Gfx = Adafruit_GFX;
 
-constexpr int PANEL_W = 800;
-constexpr int PANEL_H = 480;
+// The screen being drawn: 800x480 landscape, or 480x800 when its layout
+// hangs portrait (screens::drawScreen sets it, and puts it back to
+// landscape after; the system screens are always landscape).
+extern int PANEL_W;
+extern int PANEL_H;
+void setPortrait(bool portrait);
+// The screen's shape, landscape: 800x480 on the E1002. A board with another
+// panel sets its own before drawing anything (the E1004's 4:3 panel draws
+// 800x600, doubled to its 1600x1200; portrait, 600x800).
+void setScreenShape(int longSide, int shortSide);
 
 // The panel's palette, by the index Switchboard Server uses: 0 white,
 // 1 black, 2 red, 3 yellow, 4 green, 5 blue.
@@ -29,6 +37,9 @@ uint16_t color(int idx);
 //   BOLD82 42pt bold (the big temperature, ON/OFF)
 enum Face : uint8_t { REG18 = 0, BOLD18, BOLD24, BOLD82, FACE_COUNT };
 const GFXfont* font(Face f);
+// The panel's own face (whatever the theme sets): a board with a finer
+// panel draws text in the same face made at its resolution.
+const GFXfont* builtInFont(Face f);
 // Overrides (the theme's faces); nullptr restores the built-in one.
 void setFont(Face f, const GFXfont* override_);
 
@@ -70,6 +81,9 @@ struct Icon {
   uint16_t w = 0, h = 0;
   const uint8_t* bits = nullptr;
   bool fourBit = false;
+  // Its bits are at the panel's finer resolution (draw::fine.scale times
+  // the size it takes on the screen): fetched that size from the server.
+  bool fine = false;
   explicit operator bool() const { return bits != nullptr; }
 };
 
@@ -81,8 +95,29 @@ struct Icon {
 enum class Mode : uint8_t { Opaque, Ink, Mask };
 
 void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode = Mode::Opaque);
-// A 4-bit picture (album art in the server's "spectra" format), as is.
+// A 4-bit picture (album art, a photo: the server's "spectra" format), `w`
+// by `h` on the screen at x, y.
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y);
+
+// Pictures finer than the screen. The E1004 draws the viewport's screens at
+// twice the size, but a photo blown up like that would look coarse: its
+// pictures are fetched `scale` times the size they take on the screen, and
+// `draw` puts them on the panel at its full resolution (bits: the picture,
+// w x h; x, y: where it goes, in the screen's coordinates). The E1002:
+// scale 1, no draw.
+//
+// Icons too: those fetched from the server come `scale` times the size
+// (Icon::fine); `icon` draws any icon at the panel's resolution (a built-in
+// one, at the screen's, it enlarges itself).
+struct FinePictures {
+  int scale = 1;
+  void (*draw)(const uint8_t* bits, int w, int h, int x, int y) = nullptr;
+  void (*icon)(const Icon& ic, int x, int y, uint16_t tint, Mode mode) = nullptr;
+};
+extern FinePictures fine;
+// An icon's pixels on `g` exactly as they are, w x h at x, y (what icon()
+// does without draw::fine): for a board drawing one at its own resolution.
+void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode);
 
 // The panel's dotted rules: 2 px of ink every 7 px.
 void dottedV(Gfx& g, int x, int y0, int y1);

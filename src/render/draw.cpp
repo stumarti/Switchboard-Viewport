@@ -9,6 +9,19 @@
 
 namespace draw {
 
+int PANEL_W = 800;
+int PANEL_H = 480;
+static int g_long = 800, g_short = 480;
+void setPortrait(bool portrait) {
+  PANEL_W = portrait ? g_short : g_long;
+  PANEL_H = portrait ? g_long : g_short;
+}
+void setScreenShape(int longSide, int shortSide) {
+  g_long = longSide;
+  g_short = shortSide;
+  setPortrait(false);
+}
+
 uint16_t color(int idx) {
   static const uint16_t P[] = {GxEPD_WHITE, GxEPD_BLACK, GxEPD_RED, GxEPD_YELLOW, GxEPD_GREEN, GxEPD_BLUE};
   return idx >= 0 && idx < 6 ? P[idx] : GxEPD_BLACK;
@@ -23,6 +36,7 @@ static const GFXfont* const BUILT_IN[FACE_COUNT] = {
 static const GFXfont* g_override[FACE_COUNT] = {nullptr, nullptr, nullptr, nullptr};
 
 const GFXfont* font(Face f) { return f < FACE_COUNT ? (g_override[f] ? g_override[f] : BUILT_IN[f]) : BUILT_IN[0]; }
+const GFXfont* builtInFont(Face f) { return f < FACE_COUNT ? BUILT_IN[f] : nullptr; }
 void setFont(Face f, const GFXfont* o) {
   if (f < FACE_COUNT) g_override[f] = o;
 }
@@ -269,13 +283,30 @@ static void oneBit(Gfx& g, const uint8_t* bits, int w, int h, int x, int y, uint
   }
 }
 
-void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
+void iconPixels(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
   if (!ic.bits) return;
   if (ic.fourBit) fourBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode);
   else oneBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode);
 }
 
+FinePictures fine;
+
+void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
+  if (!ic.bits) return;
+  if (fine.scale > 1 && fine.icon) {
+    fine.icon(ic, x, y, tint, mode);
+    return;
+  }
+  iconPixels(g, ic, x, y, tint, mode);
+}
+
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y) {
+  // A finer picture (icons::picture fetched it `fine.scale` times the size):
+  // straight onto the panel.
+  if (fine.scale > 1 && fine.draw) {
+    fine.draw(bits, w * fine.scale, h * fine.scale, x, y);
+    return;
+  }
   fourBit(g, bits, w, h, x, y, GxEPD_BLACK, Mode::Opaque);
 }
 
