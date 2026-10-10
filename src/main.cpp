@@ -250,9 +250,12 @@ bool fetchBundle(JsonDocument& bundle) {
       home = s["title"] | "";
       break;
     }
+  char panel[32] = "";
+  if (display::lastRefreshMs()) snprintf(panel, sizeof(panel), "Last refresh %.1f s", display::lastRefreshMs() / 1000.0);
   display::show([&](draw::Gfx& g) {
     sys::Info in{refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()};
     in.home = home.c_str();
+    in.panel = panel;
     sys::info(g, in);
   });
   remember(Panel::Info, "");
