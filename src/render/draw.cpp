@@ -257,7 +257,9 @@ void cut(char* out, size_t cap, const char* src, int limit, int keep) {
 
 // --- Icons -----------------------------------------------------------------
 
-static void fourBit(Gfx& g, const uint8_t* bmp, int w, int h, int x, int y, uint16_t tint, Mode mode) {
+// `div`: the bitmap is that many times finer than the screen (each of its
+// pixels lands on the screen pixel it falls in).
+static void fourBit(Gfx& g, const uint8_t* bmp, int w, int h, int x, int y, uint16_t tint, Mode mode, int div = 1) {
   const int rowBytes = (w + 1) / 2;
   for (int row = 0; row < h; ++row) {
     for (int col = 0; col < w; ++col) {
@@ -266,19 +268,19 @@ static void fourBit(Gfx& g, const uint8_t* bmp, int w, int h, int x, int y, uint
       if (v >= 6) continue;
       if (mode == Mode::Mask && v != 1) continue;
       if (mode == Mode::Ink && v == 0) continue;
-      g.drawPixel(x + col, y + row, v == 1 ? tint : color(v));
+      g.drawPixel(x + col / div, y + row / div, v == 1 ? tint : color(v));
     }
   }
 }
 
-static void oneBit(Gfx& g, const uint8_t* bits, int w, int h, int x, int y, uint16_t tint, Mode mode) {
+static void oneBit(Gfx& g, const uint8_t* bits, int w, int h, int x, int y, uint16_t tint, Mode mode, int div = 1) {
   const int rowBytes = (w + 7) / 8;
   for (int row = 0; row < h; ++row) {
     for (int col = 0; col < w; ++col) {
       // Switchboard's icon format: bit 0 is ink, 1 is background.
       const bool ink = !(pgm_read_byte(&bits[row * rowBytes + col / 8]) & (0x80 >> (col & 7)));
-      if (ink) g.drawPixel(x + col, y + row, tint);
-      else if (mode == Mode::Opaque) g.drawPixel(x + col, y + row, GxEPD_WHITE);
+      if (ink) g.drawPixel(x + col / div, y + row / div, tint);
+      else if (mode == Mode::Opaque) g.drawPixel(x + col / div, y + row / div, GxEPD_WHITE);
     }
   }
 }
@@ -293,25 +295,32 @@ FinePictures fine;
 bool inPicture = false;
 bool seeThrough = false;
 
+static bool fineOn(const Gfx& g) { return fine.scale > 1 && (&g == fine.target || &g == fine.via); }
+
 void icon(Gfx& g, const Icon& ic, int x, int y, uint16_t tint, Mode mode) {
   if (!ic.bits) return;
   if (seeThrough && mode == Mode::Opaque) mode = Mode::Ink;
-  if (fine.scale > 1 && fine.icon) {
+  if (fineOn(g) && fine.icon) {
     fine.icon(ic, x, y, tint, mode);
     return;
   }
-  iconPixels(g, ic, x, y, tint, mode);
+  // A finer icon on anything else: at the screen's size.
+  const int div = ic.fine ? fine.scale : 1;
+  if (ic.fourBit) fourBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode, div);
+  else oneBit(g, ic.bits, ic.w, ic.h, x, y, tint, mode, div);
 }
 
 void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y) {
   // A finer picture (icons::picture fetched it `fine.scale` times the size):
   // straight onto the panel.
-  if (fine.scale > 1 && fine.draw) {
+  if (fineOn(g) && fine.draw) {
     fine.draw(bits, w * fine.scale, h * fine.scale, x, y);
     return;
   }
+  // (Fetched finer than the screen: put on `g` at the screen's size.)
+  const int s = fine.scale > 1 ? fine.scale : 1;
   inPicture = true;
-  fourBit(g, bits, w, h, x, y, GxEPD_BLACK, Mode::Opaque);
+  fourBit(g, bits, w * s, h * s, x, y, GxEPD_BLACK, Mode::Opaque, s);
   inPicture = false;
 }
 

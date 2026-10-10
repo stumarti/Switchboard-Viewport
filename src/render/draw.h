@@ -109,10 +109,16 @@ void picture(Gfx& g, const uint8_t* bits, int w, int h, int x, int y);
 // Icons too: those fetched from the server come `scale` times the size
 // (Icon::fine); `icon` draws any icon at the panel's resolution (a built-in
 // one, at the screen's, it enlarges itself).
+//
+// Only on `target` (the board's own canvas, while it draws) or `via` (a
+// canvas that passes on to it): drawn anywhere else (measured on nothing,
+// or a white edge worked out under it) they go on `g` at the screen's size.
 struct FinePictures {
   int scale = 1;
   void (*draw)(const uint8_t* bits, int w, int h, int x, int y) = nullptr;
   void (*icon)(const Icon& ic, int x, int y, uint16_t tint, Mode mode) = nullptr;
+  const Gfx* target = nullptr;
+  const Gfx* via = nullptr;
 };
 extern FinePictures fine;
 // Set while a picture is drawn: its white is part of it, not a background

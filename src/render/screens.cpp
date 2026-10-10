@@ -1481,13 +1481,18 @@ class Halo : public Gfx {
 };
 
 // `paint` straight on the photo: its white edge, then it, see-through.
+// (Icons only their ink, both times: a board draws its icons straight on
+// the panel, past these canvases.)
 template <typename F>
 void drawOnPhoto(Gfx& g, F paint) {
+  draw::seeThrough = true;
   Halo halo(g);
   paint(static_cast<Gfx&>(halo));
   SeeThrough clear(g);
-  draw::seeThrough = true;
+  const draw::Gfx* via = draw::fine.via;
+  if (&g == draw::fine.target) draw::fine.via = &clear;  // fine icons and pictures straight on
   paint(static_cast<Gfx&>(clear));
+  draw::fine.via = via;
   draw::seeThrough = false;
 }
 bool seeThroughOn(JsonObjectConst screen) { return !strcmp(str(screen["background"]["cards"]), "none"); }
