@@ -5,6 +5,7 @@
 // hibernate.
 // =============================================================================
 #pragma once
+#include <stdint.h>
 #include <functional>
 #include "render/draw.h"
 
@@ -23,5 +24,7 @@ void show(const std::function<void(draw::Gfx&)>& paint, int rotation = 0);
 void use(int rotation, bool large);
 // Fill the panel white.
 void clear();
+// How long the last refresh took, in ms (0 before the first one).
+uint32_t lastRefreshMs();
 
 }  // namespace display
