@@ -1,4 +1,5 @@
 #include "app/hw.h"
+#include "app/battery.h"
 
 #include <Arduino.h>
 #include <SensirionI2cSht4x.h>
@@ -56,32 +57,24 @@ const char* wakeName(Wake w) {
 }
 
 // The kitchen panel's battery reading: the monitor switched on, the ADC
-// through its /2 divider, and its discharge curve.
+// through its /2 divider (the middle half of kSamples readings, averaged:
+// app/battery.h), and its discharge curve.
 float batteryVoltage() {
   pinMode(BATTERY_ENABLE_PIN, OUTPUT);
   digitalWrite(BATTERY_ENABLE_PIN, HIGH);
   delay(10);
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
-  const int mv = analogReadMilliVolts(BATTERY_ADC_PIN);
+  int mv[battery::kSamples];
+  for (int i = 0; i < battery::kSamples; i++) {
+    mv[i] = analogReadMilliVolts(BATTERY_ADC_PIN);
+    delayMicroseconds(200);
+  }
   digitalWrite(BATTERY_ENABLE_PIN, LOW);
-  return (mv / 1000.0f) * 2.0f;
+  return (battery::trimmedMeanMv(mv, battery::kSamples) / 1000.0f) * 2.0f;
 }
 
-int batteryPercent(float v) {
-  static const float volts[] = {4.15f, 3.96f, 3.91f, 3.85f, 3.80f, 3.75f, 3.68f, 3.58f, 3.49f, 3.41f, 3.30f, 3.27f};
-  static const float pcts[] = {100.f, 90.f, 80.f, 70.f, 60.f, 50.f, 40.f, 30.f, 20.f, 10.f, 5.f, 0.f};
-  const int n = sizeof(volts) / sizeof(volts[0]);
-  if (v >= volts[0]) return 100;
-  if (v <= volts[n - 1]) return 0;
-  for (int i = 0; i < n - 1; i++) {
-    if (v <= volts[i] && v > volts[i + 1]) {
-      const float frac = (v - volts[i + 1]) / (volts[i] - volts[i + 1]);
-      return static_cast<int>(pcts[i + 1] + frac * (pcts[i] - pcts[i + 1]) + 0.5f);
-    }
-  }
-  return 0;
-}
+int batteryPercent(float v) { return battery::percent(v); }
 
 int batteryPercent() { return batteryPercent(batteryVoltage()); }
 

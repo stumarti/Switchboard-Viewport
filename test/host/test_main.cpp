@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "app/battery.h"
 #include "app/carousel.h"
 
 #include <ArduinoJson.h>
@@ -106,6 +107,20 @@ static void staying() {
   CHECK_EQ(static_cast<int>(carousel::modeOf("bogus")), static_cast<int>(Mode::Stay));
 }
 
+static void batteryReading() {
+  // One wild reading either way doesn't move it: the middle half, averaged.
+  int mv[16] = {1950, 1952, 1948, 1951, 1949, 1950, 2400, 1500, 1953, 1947, 1950, 1951, 1949, 1950, 1952, 1948};
+  CHECK_EQ(battery::trimmedMeanMv(mv, 16), 1950);
+  int one[1] = {1900};
+  CHECK_EQ(battery::trimmedMeanMv(one, 1), 1900);
+  CHECK_EQ(battery::trimmedMeanMv(one, 0), 0);
+  // The curve: its ends, a point on it, and between two.
+  CHECK_EQ(battery::percent(4.20f), 100);
+  CHECK_EQ(battery::percent(3.20f), 0);
+  CHECK_EQ(battery::percent(3.80f), 60);
+  CHECK_EQ(battery::percent(3.825f), 65);
+}
+
 int main() {
   buttons();
   kitchenPanel();
@@ -113,6 +128,7 @@ int main() {
   bundleParses();
   advancing();
   staying();
+  batteryReading();
   printf("%d checks, %d failed\n", g_run, g_failed);
   return g_failed ? 1 : 0;
 }
