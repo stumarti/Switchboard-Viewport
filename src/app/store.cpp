@@ -141,6 +141,19 @@ void erase(const char* path) {
   if (g_fs && LittleFS.exists(path)) LittleFS.remove(path);
 }
 
+void eraseDir(const char* dir) {
+  if (!g_fs) return;
+  File d = LittleFS.open(dir);
+  if (!d || !d.isDirectory()) return;
+  std::vector<String> names;
+  for (File f = d.openNextFile(); f; f = d.openNextFile()) {
+    if (!f.isDirectory()) names.push_back(String(dir) + "/" + f.name());
+    f.close();
+  }
+  d.close();
+  for (const String& n : names) LittleFS.remove(n);
+}
+
 size_t freeBytes() { return g_fs ? LittleFS.totalBytes() - LittleFS.usedBytes() : 0; }
 
 String safeName(const char* s) {

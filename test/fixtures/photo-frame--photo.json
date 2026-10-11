@@ -1,0 +1,100 @@
+{
+ "quiet": false,
+ "generatedAt": "2026-10-07T19:44:40.245Z",
+ "data": {
+  "kind": "sections",
+  "title": "Photo",
+  "template": "sidebar",
+  "columns": [
+   [
+    {
+     "id": "2714813f-9c12-4e7a-a583-b42a8b09cf10",
+     "type": "weather",
+     "title": "",
+     "data": {
+      "condition": "partlycloudy",
+      "icon": "partlycloudy",
+      "temperatureText": "16",
+      "humidityText": "68",
+      "windText": "14",
+      "bearing": 230,
+      "uv": 3,
+      "uvText": "3.0",
+      "rain": null,
+      "solar": null,
+      "temperature": 16.4,
+      "feelsLike": 15,
+      "humidity": 68,
+      "windSpeed": 14,
+      "windUnit": "km/h",
+      "temperatureUnit": "°C",
+      "forecast": [
+       {
+        "label": "Thu",
+        "condition": "rainy",
+        "high": 18,
+        "low": 10
+       },
+       {
+        "label": "Fri",
+        "condition": "sunny",
+        "high": 19,
+        "low": 9
+       },
+       {
+        "label": "Sat",
+        "condition": "cloudy",
+        "high": 17,
+        "low": 10
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": "00e72ef2-ad13-4048-ac31-20c0090224ee",
+     "type": "calendar",
+     "title": "Today",
+     "data": {
+      "lines": [
+       {
+        "day": "Today",
+        "time": "14:00",
+        "title": "Football practice",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Today 14:00 · Football practice"
+       },
+       {
+        "day": "Tomorrow",
+        "time": "",
+        "title": "Bin day: recycling",
+        "allDay": true,
+        "color": 1,
+        "description": "",
+        "text": "Tomorrow · Bin day: recycling"
+       },
+       {
+        "day": "Tomorrow",
+        "time": "10:30",
+        "title": "Dentist",
+        "allDay": false,
+        "color": 1,
+        "description": "",
+        "text": "Tomorrow 10:30 · Dentist"
+       }
+      ]
+     }
+    }
+   ]
+  ],
+  "background": {
+   "src": "immich:a0000000-0000-4000-8000-000000000003",
+   "caption": "Killarney, Ireland – 14 August 2022",
+   "empty": ""
+  },
+  "nextChangeInSec": null
+ }
+}

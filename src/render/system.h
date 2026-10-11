@@ -55,6 +55,8 @@ struct Info {
   const char* wifi;      // network and signal
   // The home button's screen (the first), by its title.
   const char* home = "";
+  // How long the panel's last refresh took, e.g. "Last refresh 14.2 s".
+  const char* panel = "";
 };
 void info(draw::Gfx& g, const Info& i);
 

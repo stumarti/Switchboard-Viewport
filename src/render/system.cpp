@@ -286,6 +286,7 @@ void info(Gfx& g, const Info& in) {
   draw::textRight(g, in.wifi, draw::PANEL_W - 40, iy);
   iy += 26;
   draw::text(g, 40, iy, in.mac);
+  if (in.panel && *in.panel) draw::textRight(g, in.panel, draw::PANEL_W - 40, iy);
 }
 
 void updating(Gfx& g, const char* version, const char* status) {

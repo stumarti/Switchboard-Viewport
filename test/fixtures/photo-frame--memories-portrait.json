@@ -1,0 +1,85 @@
+{
+ "portrait": true,
+ "quiet": false,
+ "generatedAt": "2026-10-07T19:44:40.245Z",
+ "data": {
+  "kind": "sections",
+  "title": "Memories",
+  "template": "columns",
+  "columns": [
+   [
+    {
+     "id": "417fa80e-a56f-4953-b1fa-391572a62cac",
+     "type": "photo",
+     "title": "On this day",
+     "data": {
+      "src": "immich:a0000000-0000-4000-8000-000000000001",
+      "caption": "Lahinch, Ireland \u2013 7 October 2019",
+      "empty": "",
+      "height": 0
+     }
+    }
+   ],
+   [
+    {
+     "id": "2084122a-4c91-452b-a67a-2a214dee934f",
+     "type": "weather",
+     "title": "",
+     "data": {
+      "condition": "partlycloudy",
+      "icon": "partlycloudy",
+      "temperatureText": "16",
+      "humidityText": "68",
+      "windText": "14",
+      "bearing": 230,
+      "uv": 3,
+      "uvText": "3.0",
+      "rain": null,
+      "solar": null,
+      "temperature": 16.4,
+      "feelsLike": 15,
+      "humidity": 68,
+      "windSpeed": 14,
+      "windUnit": "km/h",
+      "temperatureUnit": "\u00b0C",
+      "forecast": [
+       {
+        "label": "Later",
+        "condition": "rainy",
+        "high": 14.4,
+        "low": null
+       },
+       {
+        "label": "Thu",
+        "condition": "rainy",
+        "high": 18,
+        "low": 10
+       },
+       {
+        "label": "Fri",
+        "condition": "sunny",
+        "high": 19,
+        "low": 9
+       }
+      ]
+     }
+    },
+    {
+     "id": "65958094-c0c7-4d18-bff5-05fac1de080c",
+     "type": "message",
+     "title": "",
+     "data": {
+      "lines": [
+       "Welcome home"
+      ],
+      "size": "large",
+      "align": "left",
+      "color": 5,
+      "icon": "hand-wave"
+     }
+    }
+   ]
+  ],
+  "nextChangeInSec": null
+ }
+}

@@ -40,8 +40,27 @@ static bool fixtureIcon(const char* name, int size, draw::Icon& out) {
   return true;
 }
 
+// Pictures (album art, photos) as the device keeps them: the server's
+// spectra bitmaps, in test/fixtures/pictures/<FNV-1a of the src>_<w>x<h>.bin
+// (the device's own cache name, app/theme.cpp).
+static std::map<std::string, std::string> g_pictures;
+static const uint8_t* fixturePicture(const char* src, int w, int h) {
+  uint32_t hash = 2166136261u;
+  for (const char* p = src; *p; ++p) hash = (hash ^ static_cast<uint8_t>(*p)) * 16777619u;
+  char key[64];
+  snprintf(key, sizeof(key), "%08x_%dx%d", static_cast<unsigned>(hash), w, h);
+  auto it = g_pictures.find(key);
+  if (it == g_pictures.end()) {
+    std::string b = slurp((std::string("test/fixtures/pictures/") + key + ".bin").c_str());
+    if (b.size() < static_cast<size_t>((w + 1) / 2) * h) return nullptr;
+    it = g_pictures.emplace(key, b).first;
+  }
+  return reinterpret_cast<const uint8_t*>(it->second.data());
+}
+
 int main(int argc, char** argv) {
   icons::setLookups(nullptr, fixtureIcon);
+  icons::setPictureLookup(fixturePicture);
   if (argc < 3) {
     fprintf(stderr, "usage: render <out-dir> fixture.json...\n");
     return 2;
@@ -63,6 +82,8 @@ int main(int argc, char** argv) {
     for (int k = 0; k < 3; ++k) ctx.marks[k] = MARKS[k];
     ctx.markCount = 3;
     ctx.current = doc["current"] | 0;
+    // A layout that hangs portrait (rotation 90 or 270): 480x800.
+    ctx.portrait = doc["portrait"] | false;
     JsonObjectConst screen = doc["data"];
 
     // The collecting pass: which icons would have to be fetched.
@@ -71,7 +92,7 @@ int main(int argc, char** argv) {
     screens::drawScreen(none, screen, ctx);
     icons::endCollect();
 
-    Canvas c;
+    Canvas c(ctx.portrait ? 480 : 800, ctx.portrait ? 800 : 480);
     screens::drawScreen(c, screen, ctx);
     std::string name = argv[i];
     name = name.substr(name.find_last_of('/') + 1);
@@ -80,7 +101,7 @@ int main(int argc, char** argv) {
     c.writePpm(out.c_str());
     printf("%-36s fetch:", name.c_str());
     for (int k = 0; k < icons::needCount(); ++k) printf(" %s@%d", icons::need(k).name, icons::need(k).size);
-    for (int k = 0; k < icons::pictureNeedCount(); ++k) printf(" [picture %dx%d]", icons::pictureNeed(k).w, icons::pictureNeed(k).h);
+    for (int k = 0; k < icons::pictureNeedCount(); ++k) printf(" [picture %s %dx%d]", icons::pictureNeed(k).src, icons::pictureNeed(k).w, icons::pictureNeed(k).h);
     printf("\n");
   }
   return failed ? 1 : 0;

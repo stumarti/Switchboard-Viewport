@@ -166,7 +166,7 @@ void noteNeed(const char* name, int size) {
   for (int i = 0; i < g_needCount; ++i)
     if (g_needs[i].size == size && !strcmp(g_needs[i].name, name)) return;
   snprintf(g_needs[g_needCount].name, sizeof(g_needs[0].name), "%s", name);
-  g_needs[g_needCount].size = static_cast<uint8_t>(size);
+  g_needs[g_needCount].size = static_cast<uint16_t>(size);
   ++g_needCount;
 }
 
@@ -216,7 +216,11 @@ draw::Icon named(const char* name, int size) {
     ic.fourBit = true;
     return ic;
   }
-  if (!(g_named && g_named(name, size, ic))) noteNeed(name, size);
+  // Fetched from the server: at the panel's finer resolution where it has
+  // one (draw::fine), drawn without enlarging.
+  const int fetched = size * draw::fine.scale;
+  if (!(g_named && g_named(name, fetched, ic))) noteNeed(name, fetched);
+  ic.fine = ic.bits && draw::fine.scale > 1;
   return ic;
 }
 
@@ -224,8 +228,15 @@ void setPictureLookup(PictureLookup lookup) { g_picture = lookup; }
 
 const uint8_t* picture(const char* src, int w, int h) {
   if (!src || !*src) return nullptr;
+  // Fetched (and kept) at the panel's own resolution where it's finer than
+  // the screen's (draw::fine): the E1004's full-resolution photos.
+  w *= draw::fine.scale;
+  h *= draw::fine.scale;
   const uint8_t* p = g_picture ? g_picture(src, w, h) : nullptr;
   if (!p && g_collecting && g_pictureNeedCount < MAX_PICTURE_NEEDS && strlen(src) < sizeof(g_pictureNeeds[0].src)) {
+    // Once each (a section over a photo is measured, then drawn).
+    for (int i = 0; i < g_pictureNeedCount; ++i)
+      if (g_pictureNeeds[i].w == w && g_pictureNeeds[i].h == h && !strcmp(g_pictureNeeds[i].src, src)) return p;
     PictureNeed& n = g_pictureNeeds[g_pictureNeedCount++];
     snprintf(n.src, sizeof(n.src), "%s", src);
     n.w = static_cast<uint16_t>(w);

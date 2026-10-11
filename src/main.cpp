@@ -62,6 +62,7 @@ RTC_DATA_ATTR char rtcPanelKey[64] = "";  // which error / pairing status
 RTC_DATA_ATTR char rtcScreen[64] = "";    // the screen showing
 RTC_DATA_ATTR char rtcEtag[48] = "";      // its state's ETag
 RTC_DATA_ATTR bool rtcQuiet = false;
+RTC_DATA_ATTR int rtcRotation = 0;        // how the screen showing was turned
 RTC_DATA_ATTR int64_t rtcLastPress = 0;
 RTC_DATA_ATTR int64_t rtcLastChange = 0;
 RTC_DATA_ATTR uint32_t rtcSleep = 0;  // the last plan, for wakes that can't ask
@@ -250,9 +251,12 @@ bool fetchBundle(JsonDocument& bundle) {
       home = s["title"] | "";
       break;
     }
+  char panel[32] = "";
+  if (display::lastRefreshMs()) snprintf(panel, sizeof(panel), "Last refresh %.1f s", display::lastRefreshMs() / 1000.0);
   display::show([&](draw::Gfx& g) {
     sys::Info in{refresh, time, g_batt, srv.c_str(), name, layout, FIRMWARE_VERSION, mac.c_str(), wifiLine.c_str()};
     in.home = home.c_str();
+    in.panel = panel;
     sys::info(g, in);
   });
   remember(Panel::Info, "");
@@ -419,7 +423,9 @@ void setup() {
   // ---- The screen's state ----
   // A button press, another screen, or something else on the panel: draw
   // whatever comes. Otherwise only when it changed.
-  const bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen;
+  // How the display hangs (the layout's rotation): turned, it's redrawn.
+  const int rotation = layout["rotation"] | 0;
+  const bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen || rotation != rtcRotation;
   const String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
   server::Response r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), force ? nullptr : rtcEtag);
   JsonDocument state;
@@ -473,6 +479,10 @@ void setup() {
   ctx.markCount = static_cast<int>(marks.size() < 12 ? marks.size() : 12);
   for (int i = 0; i < ctx.markCount; ++i) ctx.marks[i] = marks[i].c_str();
   ctx.current = index;
+  ctx.portrait = rotation == 90 || rotation == 270;
+  // Before the collecting pass: on a 13.3" board, the screen's size and how
+  // fine its pictures come depend on it.
+  display::use(rotation, strcmp(layout["boardSize"] | "large", "small") != 0);
   JsonObjectConst data = state["data"];
   {
     screens::NullCanvas none;
@@ -483,8 +493,9 @@ void setup() {
   }
   wifi::off();  // nothing more to fetch: save the battery while the panel refreshes
   LOGF("Drawing %s\n", screenId.c_str());
-  display::show([&](draw::Gfx& g) { screens::drawScreen(g, data, ctx); });
+  display::show([&](draw::Gfx& g) { screens::drawScreen(g, data, ctx); }, rotation);
   remember(Panel::Screen, "");
+  rtcRotation = rotation;
   snprintf(rtcScreen, sizeof(rtcScreen), "%s", screenId.c_str());
   snprintf(rtcEtag, sizeof(rtcEtag), "%s", (state["etag"] | r.etag.c_str()));
   rtcQuiet = quiet;

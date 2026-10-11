@@ -1,0 +1,91 @@
+{
+ "portrait": true,
+ "quiet": false,
+ "generatedAt": "2026-10-03T11:18:30.745Z",
+ "data": {
+  "kind": "meetingRoom",
+  "title": "Meeting room",
+  "data": {
+   "name": "Boardroom",
+   "status": "busy",
+   "label": "In use",
+   "color": 2,
+   "icon": "account-group",
+   "until": "Busy until 12:00",
+   "current": {
+    "title": "Quarterly review",
+    "time": "10:30\u201311:30",
+    "endsInMin": 11
+   },
+   "next": {
+    "title": "Design sync",
+    "time": "11:30\u201312:00",
+    "day": "Today"
+   },
+   "upcoming": [
+    {
+     "title": "Design sync",
+     "time": "11:30\u201312:00"
+    },
+    {
+     "title": "Hiring panel",
+     "time": "14:00\u201315:00"
+    }
+   ],
+   "timeline": {
+    "hours": 3,
+    "start": "11:15",
+    "end": "14:15",
+    "blocks": [
+     {
+      "from": 0,
+      "to": 0.083,
+      "title": "Quarterly review",
+      "time": "10:30\u201311:30",
+      "color": 2
+     },
+     {
+      "from": 0.083,
+      "to": 0.25,
+      "title": "Design sync",
+      "time": "11:30\u201312:00",
+      "color": 2
+     },
+     {
+      "from": 0.917,
+      "to": 1,
+      "title": "Hiring panel",
+      "time": "14:00\u201315:00",
+      "color": 2
+     }
+    ],
+    "ticks": [
+     {
+      "at": 0,
+      "label": "11:15"
+     },
+     {
+      "at": 0.25,
+      "label": "12:00"
+     },
+     {
+      "at": 0.583,
+      "label": "13:00"
+     },
+     {
+      "at": 1,
+      "label": "14:15"
+     }
+    ]
+   },
+   "climate": {
+    "temperature": 21.6,
+    "unit": "\u00b0",
+    "humidity": 48,
+    "co2": 1180,
+    "co2Color": 3
+   }
+  },
+  "nextChangeInSec": 690
+ }
+}

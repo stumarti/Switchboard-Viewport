@@ -29,6 +29,8 @@ String readText(const char* path);
 bool write(const char* path, const uint8_t* data, size_t len);
 bool writeText(const char* path, const String& text);
 void erase(const char* path);
+// Every file in a folder (not its folders).
+void eraseDir(const char* dir);
 // Room left on the cache, in bytes.
 size_t freeBytes();
 
