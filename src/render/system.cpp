@@ -186,8 +186,11 @@ void error(Gfx& g, const char* iconKey, const char* title, const char* detail, c
     draw::face(g, draw::REG18, GxEPD_BLACK);
     draw::textCentered(g, detail, 0, draw::PANEL_W, 340);
   }
-  draw::face(g, draw::REG18, GxEPD_BLACK);
-  draw::textCentered(g, dateTime && *dateTime ? dateTime : "--:--", 0, draw::PANEL_W, 420);
+  // Since when (left off before the clock is set).
+  if (dateTime && *dateTime) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::textCentered(g, dateTime, 0, draw::PANEL_W, 420);
+  }
 }
 
 // The kitchen panel's "CHARGE ME", as it was.

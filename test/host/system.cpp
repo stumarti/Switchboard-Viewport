@@ -32,17 +32,17 @@ int main(int argc, char** argv) {
   }
   {
     Canvas c;
-    sys::error(c, "vx_wifi_off", "No WiFi connection", "Check network or router", "Sat 03 Oct 2026  11:04");
+    sys::error(c, "vx_wifi_off", "No WiFi connection", "Check network or router", "Since Sat 03 Oct  11:04");
     save(c, "error-wifi");
   }
   {
     Canvas c;
-    sys::error(c, "vx_cloud_off", "Can't reach Home Assistant", "Switchboard Server can't reach it", "Sat 03 Oct 2026  11:04");
+    sys::error(c, "vx_cloud_off", "Can't reach Home Assistant", "Switchboard Server can't reach it", "Since Sat 03 Oct  11:04");
     save(c, "error-ha");
   }
   {
     Canvas c;
-    sys::error(c, "vx_server_off", "Not connected to Switchboard", "Can't reach the server at 192.168.1.20:45678", "Sat 03 Oct 2026  11:04");
+    sys::error(c, "vx_server_off", "Not connected to Switchboard", "Can't reach the server at 192.168.1.20:45678", "Since Sat 03 Oct  11:04");
     save(c, "error-server");
   }
   {
