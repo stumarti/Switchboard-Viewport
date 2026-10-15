@@ -131,13 +131,22 @@ bool alreadyShowing(Panel p, const char* key) { return rtcPanel == p && !strcmp(
   hw::sleepFor(sec);
 }
 
-// The kitchen panel's error screen. Like the panel, it's drawn on every
-// wake that fails, so its date line says when it last tried; then sleep for
-// the usual interval.
+// What woke it this time (set first thing in setup).
+hw::Wake g_wake = hw::Wake::PowerOn;
+
+// The kitchen panel's error screen, saying since when: drawn when the problem
+// starts (or changes), then left up while the display keeps trying at each
+// wake. A full refresh is the most a wake costs, so an outage of a day costs
+// one, not one every interval. A button press draws it again (it was asked
+// for, and the date line shows it tried). Then sleep for the usual interval.
 [[noreturn]] void fail(const char* icon, const char* title, const char* detail) {
   LOGF("Error: %s (%s)\n", title, detail);
+  if (alreadyShowing(Panel::Error, title) && g_wake == hw::Wake::Timer) {
+    LOGF("Still: %s (already on the panel)\n", title);
+    sleepNow(planSleep());
+  }
   char when[40];
-  localTime(when, sizeof(when), "%a %d %b %Y  %H:%M", "--:--");
+  localTime(when, sizeof(when), "Since %a %d %b  %H:%M", "");
   display::show([&](draw::Gfx& g) { sys::error(g, icon, title, detail, when); });
   remember(Panel::Error, title);
   sleepNow(planSleep());
@@ -291,6 +300,7 @@ void setup() {
   ++rtcBoots;
   hw::begin();
   const hw::Wake wake = hw::wakeReason();
+  g_wake = wake;
   LOGF("\n=== %s %s, wake #%u: %s ===\n", kMarker, WiFi.macAddress().c_str(), static_cast<unsigned>(rtcBoots), hw::wakeName(wake));
 
   store::begin();
