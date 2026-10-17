@@ -1797,27 +1797,29 @@ void footer(Gfx& g, const Ctx& ctx) {
 // --- Photo frame ---------------------------------------------------------------
 //
 // An Immich photo filling the screen (the server's picture at its size),
-// and a few lines over it in white (outlined in black, unless the layout
-// turns that off, so they read on any photo), stacked from a corner: the date (larger), the weather, the next
-// event, a message; the photo's caption last, small. No footer: the battery
-// shows only when it's low.
+// and a few lines over it, stacked from a corner: the date (larger), the
+// weather, the next event, a message; the photo's caption last, small. The
+// lines are white or black (the server's "ink": for a frame that contrasts
+// with its photo, whichever suits the photo under them), with an edge in the
+// other colour unless the layout turns it off. No footer: the battery shows
+// only when it's low.
 
-// White text, with a black edge around it if `outline`.
-void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size, bool outline) {
+// Text in `ink`, with an edge in `edge` around it if `outline`.
+void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size, bool outline, uint16_t ink, uint16_t edge) {
   static const int8_t OFF[][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}, {0, 2}, {2, 0}, {-2, 0}, {0, -2}};
-  draw::face(g, f, GxEPD_BLACK, size);
+  draw::face(g, f, edge, size);
   if (outline)
     for (const auto& o : OFF) draw::text(g, x + o[0], y + o[1], s);
-  draw::face(g, f, GxEPD_WHITE, size);
+  draw::face(g, f, ink, size);
   draw::text(g, x, y, s);
 }
 
-void outlinedIcon(Gfx& g, const draw::Icon& ic, int x, int y, bool outline) {
+void outlinedIcon(Gfx& g, const draw::Icon& ic, int x, int y, bool outline, uint16_t ink, uint16_t edge) {
   if (!ic) return;
   static const int8_t OFF[][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
   if (outline)
-    for (const auto& o : OFF) draw::icon(g, ic, x + o[0], y + o[1], GxEPD_BLACK, Mode::Ink);
-  draw::icon(g, ic, x, y, GxEPD_WHITE, Mode::Ink);
+    for (const auto& o : OFF) draw::icon(g, ic, x + o[0], y + o[1], edge, Mode::Ink);
+  draw::icon(g, ic, x, y, ink, Mode::Ink);
 }
 
 void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
@@ -1833,6 +1835,9 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
 
   const bool large = !strcmp(str(d["size"]), "large");
   const bool outline = d["outline"] | true;
+  const bool blackInk = !strcmp(str(d["ink"]), "black");
+  const uint16_t ink = blackInk ? GxEPD_BLACK : GxEPD_WHITE;
+  const uint16_t edge = blackInk ? GxEPD_WHITE : GxEPD_BLACK;
   const char* corner = str(d["corner"], "bottomLeft");
   const bool right = !strcmp(corner, "bottomRight") || !strcmp(corner, "topRight");
   const bool top = !strcmp(corner, "topLeft") || !strcmp(corner, "topRight");
@@ -1865,7 +1870,7 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
   char buf[160];
   for (int i = 0; i < n; ++i) {
     const Line& l = lines[i];
-    draw::face(g, l.face, GxEPD_WHITE, l.size);
+    draw::face(g, l.face, ink, l.size);
     draw::ascii(buf, sizeof(buf), l.text);
     const int iconW = *l.icon ? l.iconSize + 8 : 0;
     const int maxW = W - 2 * MARGIN_X - iconW;
@@ -1873,8 +1878,8 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     const int tw = draw::bounds(g, buf).w;
     const int x0 = right ? W - MARGIN_X - tw - iconW : MARGIN_X;
     const int base = y + l.h - (l.h - (l.size > 1 ? 44 : l.face == draw::BOLD24 ? 22 : 16)) / 2 - 2;
-    if (*l.icon) outlinedIcon(g, icons::named(l.icon, l.iconSize), x0, base - l.iconSize + 4, outline);
-    outlinedText(g, x0 + iconW, base, buf, l.face, l.size, outline);
+    if (*l.icon) outlinedIcon(g, icons::named(l.icon, l.iconSize), x0, base - l.iconSize + 4, outline, ink, edge);
+    outlinedText(g, x0 + iconW, base, buf, l.face, l.size, outline, ink, edge);
     y += l.h;
   }
 
@@ -1882,10 +1887,10 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
   if (ctx.battPct >= 0 && ctx.battPct < 20) {
     char b[24];
     snprintf(b, sizeof(b), "Battery %d%%", ctx.battPct);
-    draw::face(g, draw::BOLD18, GxEPD_WHITE);
+    draw::face(g, draw::BOLD18, ink);
     const int bw = draw::bounds(g, b).w;
     const bool leftTop = top && right;
-    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, MARGIN_Y + 18, b, draw::BOLD18, 1, outline);
+    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, MARGIN_Y + 18, b, draw::BOLD18, 1, outline, ink, edge);
   }
 }
 
