@@ -55,12 +55,17 @@ void heading(char* out, size_t cap, JsonObjectConst s, const char* fallback) {
 // =============================================================================
 
 // Weather: big temperature, icon, humidity / wind / UV, the rain or solar
-// line, and the next days. 268 px tall (the panel's ENERGY_Y).
+// line, and the next days. 268 px tall (the panel's ENERGY_Y). As wide as
+// the panel's left column at most (WEATHER_W), on the left of a wider one:
+// spread across a whole screen, its rows came apart from the temperature
+// and icon, which stay where they are.
+const int WEATHER_W = 250;
 int weather(Gfx& g, JsonObjectConst d, Box b) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
   const int TEMP_Y = y0 + 70, DETAIL_Y = y0 + 106, RAIN_SOLAR_Y = y0 + 132, MINI_FC_Y = y0 + 152;
-  const int CELL = (b.w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
+  const int w = b.w < WEATHER_W ? b.w : WEATHER_W;
+  const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
   if (d.isNull()) {
     draw::face(g, draw::REG18, GxEPD_BLACK);
@@ -1579,6 +1584,9 @@ void sectionsScreen(Gfx& g, JsonObjectConst d) {
       if (b.y >= draw::PANEL_H) break;
       Box sb = b;
       if ((n == 1 || portrait) && !strcmp(str(s["type"]), "heating")) sb = {0, b.y, draw::PANEL_W};
+      // The weather keeps to its own width (weather()): over a photo, its
+      // card too, rather than a white band across the screen.
+      if (onPhoto && !strcmp(str(s["type"]), "weather") && sb.w > WEATHER_W) sb.w = WEATHER_W;
       if (onPhoto) {
         // Measured first (drawn on nothing), then a white card that size
         // under it, so it reads over the photo.
