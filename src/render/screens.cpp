@@ -1891,14 +1891,39 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     y += l.h;
   }
 
-  // A low battery, in the opposite top corner.
+  // The corner note: an icon and a line of the layout's own, in a corner of
+  // its own (the server puts it with the lines when it's theirs).
+  JsonObjectConst note = d["note"];
+  const char* noteCorner = str(note["corner"], "");
+  int noteBottom = 0;  // how far down it reaches, when it's in a top corner
+  if (!note.isNull() && (*str(note["text"]) || *str(note["icon"]))) {
+    const bool nRight = !strcmp(noteCorner, "bottomRight") || !strcmp(noteCorner, "topRight");
+    const bool nTop = !strcmp(noteCorner, "topLeft") || !strcmp(noteCorner, "topRight");
+    const draw::Face face = large ? draw::BOLD24 : draw::BOLD18;
+    const int h = large ? 32 : 26, iconSize = large ? 32 : 24;
+    const char* icon = str(note["icon"]);
+    draw::face(g, face, ink, 1);
+    draw::ascii(buf, sizeof(buf), str(note["text"]));
+    const int iconW = *icon ? iconSize + (*buf ? 8 : 0) : 0;
+    draw::fit(g, buf, sizeof(buf), str(note["text"]), W - 2 * MARGIN_X - iconW);
+    const int tw = *buf ? draw::bounds(g, buf).w : 0;
+    const int x0 = nRight ? W - MARGIN_X - tw - iconW : MARGIN_X;
+    const int ny = nTop ? MARGIN_Y : H - MARGIN_Y - h;
+    const int base = ny + h - (h - (face == draw::BOLD24 ? 22 : 16)) / 2 - 2;
+    if (*icon) outlinedIcon(g, icons::named(icon, iconSize), x0, base - iconSize + 4, outline, ink, edge);
+    if (*buf) outlinedText(g, x0 + iconW, base, buf, face, 1, outline, ink, edge);
+    if (nTop) noteBottom = ny + h;
+  }
+
+  // A low battery, in the opposite top corner (under the note if it's there).
   if (ctx.battPct >= 0 && ctx.battPct < 20) {
     char b[24];
     snprintf(b, sizeof(b), "Battery %d%%", ctx.battPct);
     draw::face(g, draw::BOLD18, ink);
     const int bw = draw::bounds(g, b).w;
     const bool leftTop = top && right;
-    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, MARGIN_Y + 18, b, draw::BOLD18, 1, outline, ink, edge);
+    const bool underNote = noteBottom && !strcmp(noteCorner, leftTop ? "topLeft" : "topRight");
+    outlinedText(g, leftTop ? MARGIN_X : W - MARGIN_X - bw, (underNote ? noteBottom : MARGIN_Y) + 18, b, draw::BOLD18, 1, outline, ink, edge);
   }
 }
 
