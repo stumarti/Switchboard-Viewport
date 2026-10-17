@@ -39,7 +39,9 @@ struct Ctx {
 void drawScreen(draw::Gfx& g, JsonObjectConst screen, const Ctx& ctx);
 
 // The footer every sections screen ends with: refresh icon, time, battery.
+// (In `ink`, for a photo frame's own: its battery in that colour too.)
 void footer(draw::Gfx& g, const Ctx& ctx);
+void footer(draw::Gfx& g, const Ctx& ctx, uint16_t ink, bool onFrame);
 
 // An Adafruit_GFX that draws nothing: for the collecting pass.
 class NullCanvas : public Adafruit_GFX {

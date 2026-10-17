@@ -1472,17 +1472,18 @@ class SeeThrough : public Gfx {
   Gfx& t_;
 };
 
-// What's drawn on it becomes a white patch HALO px bigger all round on
-// `target`: drawn first, under the same thing drawn see-through.
+// What's drawn on it becomes a white patch (or `edge`) HALO px bigger all
+// round on `target`: drawn first, under the same thing drawn see-through.
 class Halo : public Gfx {
  public:
-  explicit Halo(Gfx& target) : Gfx(target.width(), target.height()), t_(target) {}
+  explicit Halo(Gfx& target, uint16_t edge = GxEPD_WHITE) : Gfx(target.width(), target.height()), t_(target), edge_(edge) {}
   void drawPixel(int16_t x, int16_t y, uint16_t c) override {
-    if (c != GxEPD_WHITE) t_.fillRect(x - HALO, y - HALO, 2 * HALO + 1, 2 * HALO + 1, GxEPD_WHITE);
+    if (c != GxEPD_WHITE) t_.fillRect(x - HALO, y - HALO, 2 * HALO + 1, 2 * HALO + 1, edge_);
   }
 
  private:
   Gfx& t_;
+  uint16_t edge_;
 };
 
 // `paint` straight on the photo: its white edge, then it, see-through.
@@ -1752,13 +1753,15 @@ void roomFinder(Gfx& g, JsonObjectConst d, const char* title) {
 // The panel's footer: [refresh] time [battery icon] percentage, ending 12 px
 // from the right edge along y = 468; the bed-and-clock before it in quiet
 // hours; the carousel's icons before that. A thin bar, with space either
-// side, between the three groups.
-void footer(Gfx& g, const Ctx& ctx) {
+// side, between the three groups. In `ink` (on a photo frame, its lines'
+// colour: the battery too then, red only when it's low).
+void footer(Gfx& g, const Ctx& ctx) { footer(g, ctx, GxEPD_BLACK, false); }
+void footer(Gfx& g, const Ctx& ctx, uint16_t ink, bool onFrame) {
   const int FOOTER_Y = draw::PANEL_H - 12, FOOTER_ICON_Y = FOOTER_Y - 18, FOOTER_TINY_Y = FOOTER_Y - 13;
   const int FOOTER_MARGIN_R = 12, FOOTER_GAP = 10;
   const int BAR_GAP = 10, BAR_TOP = FOOTER_Y - 16, BAR_H = 18;
   const int pct = ctx.battPct;
-  const uint16_t batCol = pct < 0 ? GxEPD_BLACK : pct > BATT_GREEN_PCT ? GxEPD_GREEN : pct > BATT_RED_PCT ? GxEPD_BLACK : GxEPD_RED;
+  const uint16_t batCol = pct < 0 ? ink : pct > BATT_GREEN_PCT ? (onFrame ? ink : GxEPD_GREEN) : pct > BATT_RED_PCT ? ink : GxEPD_RED;
   char pctStr[16];
   if (pct < 0) snprintf(pctStr, sizeof(pctStr), "--%%");
   else snprintf(pctStr, sizeof(pctStr), "%d%%", pct);
@@ -1772,17 +1775,17 @@ void footer(Gfx& g, const Ctx& ctx) {
   // returns where the group before it ends.
   auto bar = [&](int right) {
     const int bx = right - BAR_GAP - 1;
-    for (int y = BAR_TOP; y < BAR_TOP + BAR_H; y += 3) g.drawPixel(bx, y, GxEPD_BLACK);
+    for (int y = BAR_TOP; y < BAR_TOP + BAR_H; y += 3) g.drawPixel(bx, y, ink);
     return bx - BAR_GAP;
   };
 
-  draw::face(g, draw::REG18, GxEPD_BLACK);
+  draw::face(g, draw::REG18, ink);
   const draw::Bounds tb = draw::bounds(g, ctx.time);
   const int timeEnd = ctx.footerBars ? bar(iconX) : iconX - FOOTER_GAP;
   const int timeX = timeEnd - tb.w;
   draw::text(g, timeX, FOOTER_Y, ctx.time);
   const int refX = timeX - 16 - 4;
-  draw::icon(g, icons::slot("vf_refresh"), refX, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
+  draw::icon(g, icons::slot("vf_refresh"), refX, FOOTER_TINY_Y, ink, Mode::Opaque);
   int x = refX;
   if (ctx.quiet) {
     x -= 16 + 4;
@@ -1796,8 +1799,8 @@ void footer(Gfx& g, const Ctx& ctx) {
     const int x0 = x - n * step + 6;
     for (int i = 0; i < n; ++i) {
       const int ix = x0 + i * step;
-      draw::icon(g, icons::named(ctx.marks[i] && *ctx.marks[i] ? ctx.marks[i] : "view-dashboard-outline", 16), ix, FOOTER_TINY_Y, GxEPD_BLACK, Mode::Opaque);
-      if (i == ctx.current) g.fillRect(ix, FOOTER_TINY_Y + 18, 16, 2, GxEPD_BLACK);
+      draw::icon(g, icons::named(ctx.marks[i] && *ctx.marks[i] ? ctx.marks[i] : "view-dashboard-outline", 16), ix, FOOTER_TINY_Y, ink, Mode::Opaque);
+      if (i == ctx.current) g.fillRect(ix, FOOTER_TINY_Y + 18, 16, 2, ink);
     }
   }
 }
@@ -1809,8 +1812,9 @@ void footer(Gfx& g, const Ctx& ctx) {
 // weather, the next event, a message; the photo's caption last, small. The
 // lines are white or black (the server's "ink": for a frame that contrasts
 // with its photo, whichever suits the photo under them), with an edge in the
-// other colour unless the layout turns it off. No footer: the battery shows
-// only when it's low.
+// other colour unless the layout turns it off. The footer only when the
+// layout asks for it, in its own colour and edge; without it the battery
+// shows only when it's low.
 
 // Text in `ink`, with an edge in `edge` around it if `outline`.
 void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size, bool outline, uint16_t ink, uint16_t edge) {
@@ -1873,8 +1877,12 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
 
   int total = 0;
   for (int i = 0; i < n; ++i) total += lines[i].h;
+  JsonObjectConst foot = d["footer"];
+  const bool hasFooter = !foot.isNull();
   const int MARGIN_X = 16, MARGIN_Y = 14;
-  int y = top ? MARGIN_Y : H - MARGIN_Y - total;
+  // In the bottom right, above the footer when it's there.
+  auto bottomMargin = [&](const char* c) { return hasFooter && !strcmp(c, "bottomRight") ? MARGIN_Y + 30 : MARGIN_Y; };
+  int y = top ? MARGIN_Y : H - bottomMargin(corner) - total;
   char buf[160];
   for (int i = 0; i < n; ++i) {
     const Line& l = lines[i];
@@ -1908,11 +1916,25 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     draw::fit(g, buf, sizeof(buf), str(note["text"]), W - 2 * MARGIN_X - iconW);
     const int tw = *buf ? draw::bounds(g, buf).w : 0;
     const int x0 = nRight ? W - MARGIN_X - tw - iconW : MARGIN_X;
-    const int ny = nTop ? MARGIN_Y : H - MARGIN_Y - h;
+    const int ny = nTop ? MARGIN_Y : H - bottomMargin(noteCorner) - h;
     const int base = ny + h - (h - (face == draw::BOLD24 ? 22 : 16)) / 2 - 2;
     if (*icon) outlinedIcon(g, icons::named(icon, iconSize), x0, base - iconSize + 4, outline, ink, edge);
     if (*buf) outlinedText(g, x0 + iconW, base, buf, face, 1, outline, ink, edge);
     if (nTop) noteBottom = ny + h;
+  }
+
+  // The footer: drawn as the layouts' is over a photo, its edge (if it has
+  // one) first, then it.
+  if (hasFooter) {
+    const bool fBlack = !strcmp(str(foot["ink"]), "black");
+    draw::seeThrough = true;
+    if (foot["outline"] | true) {
+      Halo halo(g, fBlack ? GxEPD_WHITE : GxEPD_BLACK);
+      footer(halo, ctx, GxEPD_BLACK, true);
+    }
+    footer(g, ctx, fBlack ? GxEPD_BLACK : GxEPD_WHITE, true);
+    draw::seeThrough = false;
+    return;
   }
 
   // A low battery, in the opposite top corner (under the note if it's there).
