@@ -58,9 +58,13 @@ void heading(char* out, size_t cap, JsonObjectConst s, const char* fallback) {
 // line, and the next days. 268 px tall (the panel's ENERGY_Y). As wide as
 // the panel's left column at most (WEATHER_W), on the left of a wider one:
 // spread across a whole screen, its rows came apart from the temperature
-// and icon, which stay where they are.
+// and icon, which stay where they are. In `ink` (on a photo frame, its
+// lines' colour: the temperature and the rain keep theirs).
 const int WEATHER_W = 250;
-int weather(Gfx& g, JsonObjectConst d, Box b) {
+// How far down it draws, to the next days' highs (a photo frame stacks it
+// with its lines).
+int weatherDrawn(JsonObjectConst d) { return d["forecast"].as<JsonArrayConst>().size() ? 216 : 116; }
+int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
   const int TEMP_Y = y0 + 70, DETAIL_Y = y0 + 106, RAIN_SOLAR_Y = y0 + 132, MINI_FC_Y = y0 + 152;
@@ -68,7 +72,7 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
   const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
   if (d.isNull()) {
-    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::face(g, draw::REG18, ink);
     draw::text(g, LC_X, y0 + 40, "No weather entity");
     return 268;
   }
@@ -77,7 +81,7 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
   {
     const char* t = str(d["temperatureText"], "--");
     const float v = static_cast<float>(atof(t));
-    uint16_t tc = GxEPD_BLACK;
+    uint16_t tc = ink;
     if (v < 0.0f) tc = GxEPD_BLUE;
     if (v > 20.0f) tc = GxEPD_RED;
     draw::face(g, draw::BOLD82, tc);
@@ -93,7 +97,7 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
   {
     char key[40];
     icons::weatherKey(key, sizeof(key), str(d["icon"], str(d["condition"])), false);
-    draw::icon(g, icons::slot(key), b.x + 152, y0 + 2, GxEPD_BLACK, Mode::Opaque);
+    draw::icon(g, icons::slot(key), b.x + 152, y0 + 2, ink, Mode::Opaque);
   }
 
   // ---- Detail row: humidity · wind · UV ----
@@ -101,27 +105,27 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
     const int DX_OFF = 5;
     const int dy = DETAIL_Y;
     char buf[24];
-    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::face(g, draw::REG18, ink);
     int dx = LC_X + DX_OFF;
-    draw::icon(g, icons::slot("vd_humidity"), dx, dy - 18, GxEPD_BLACK);
+    draw::icon(g, icons::slot("vd_humidity"), dx, dy - 18, ink);
     snprintf(buf, sizeof(buf), "%s%%", str(d["humidityText"], "--"));
     draw::text(g, dx + 26, dy, buf);
 
     dx = LC_X + CELL + DX_OFF;
-    draw::icon(g, icons::slot("vd_wind"), dx, dy - 18, GxEPD_BLACK);
+    draw::icon(g, icons::slot("vd_wind"), dx, dy - 18, ink);
     const char* wind = str(d["windText"], "--");
     draw::text(g, dx + 26, dy, wind);
     const draw::Bounds wb = draw::bounds(g, wind);
-    draw::icon(g, icons::slot(icons::windKey(d["bearing"] | 0.0f)), dx + 26 + wb.w + 4, dy - 18, GxEPD_BLACK);
+    draw::icon(g, icons::slot(icons::windKey(d["bearing"] | 0.0f)), dx + 26 + wb.w + 4, dy - 18, ink);
 
     dx = LC_X + CELL * 2 + DX_OFF;
-    draw::icon(g, icons::slot("vd_uv"), dx, dy - 18, GxEPD_BLACK);
+    draw::icon(g, icons::slot("vd_uv"), dx, dy - 18, ink);
     draw::text(g, dx + 26, dy, str(d["uvText"], "--"));
   }
 
   // ---- Rain / solar row: rain first, else the solar forecast ----
   {
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
+    draw::face(g, draw::BOLD18, ink);
     JsonObjectConst rain = d["rain"];
     const char* rs = str(rain["state"], "dry");
     if (!rain.isNull() && strcmp(rs, "dry") != 0) {
@@ -129,8 +133,8 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
       g.setTextColor(GxEPD_BLUE);
       draw::text(g, LC_X + 28, RAIN_SOLAR_Y, str(rain["text"]));
     } else if (has(d["solar"])) {
-      draw::icon(g, icons::slot("vd_solar"), LC_X, RAIN_SOLAR_Y - 16, GxEPD_BLACK);
-      g.setTextColor(GxEPD_BLACK);
+      draw::icon(g, icons::slot("vd_solar"), LC_X, RAIN_SOLAR_Y - 16, ink);
+      g.setTextColor(ink);
       draw::text(g, LC_X + 28, RAIN_SOLAR_Y, str(d["solar"]["text"]));
     }
   }
@@ -144,11 +148,11 @@ int weather(Gfx& g, JsonObjectConst d, Box b) {
       if (i >= 3) break;
       const int cx = LC_X + i * FCELL_W;
       const int fy = MINI_FC_Y;
-      draw::face(g, draw::BOLD18, GxEPD_BLACK);
+      draw::face(g, draw::BOLD18, ink);
       draw::textCentered(g, str(f["label"]), cx, FCELL_W, fy + 11);
       char key[40];
       icons::weatherKey(key, sizeof(key), str(f["condition"]), true);
-      draw::icon(g, icons::slot(key), cx + (FCELL_W - MINI_ICON_S) / 2, fy + 14, GxEPD_BLACK);
+      draw::icon(g, icons::slot(key), cx + (FCELL_W - MINI_ICON_S) / 2, fy + 14, ink);
       char hi[16];
       // "18°": the font has no degree sign, so it prints as "18", as it did.
       if (f["high"].isNull()) snprintf(hi, sizeof(hi), "--\xC2\xB0");
@@ -1809,7 +1813,8 @@ void footer(Gfx& g, const Ctx& ctx, uint16_t ink, bool onFrame) {
 //
 // An Immich photo filling the screen (the server's picture at its size),
 // and a few lines over it, stacked from a corner: the date (larger), the
-// weather, the next event, a message; the photo's caption last, small. The
+// weather (a line, or the information screens' own, on the left), the next
+// event, a message; the photo's caption last, small. The
 // lines are white or black (the server's "ink": for a frame that contrasts
 // with its photo, whichever suits the photo under them), with an edge in the
 // other colour unless the layout turns it off. The footer only when the
@@ -1859,21 +1864,30 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     draw::Face face;
     uint8_t size;
     int h, iconSize;
+    bool weather;
   };
   Line lines[10];
   int n = 0;
+  JsonObjectConst wx = d["weather"];
   for (JsonObjectConst l : d["lines"].as<JsonArrayConst>()) {
     if (n >= 9) break;
     const bool big = l["big"] | false;
     Line& x = lines[n++];
+    // Where the full weather goes, with the lines.
+    if ((l["weather"] | false) && !wx.isNull()) {
+      x = {"", "", draw::BOLD18, 1, weatherDrawn(wx) + 4, 0};
+      x.weather = true;
+      continue;
+    }
     x.text = str(l["text"]);
     x.icon = str(l["icon"]);
     x.face = big || large ? draw::BOLD24 : draw::BOLD18;
     x.size = big && large ? 2 : 1;
     x.h = big ? (large ? 58 : 32) : (large ? 32 : 26);
     x.iconSize = large ? 32 : 24;
+    x.weather = false;
   }
-  if (*str(d["caption"])) lines[n++] = {str(d["caption"]), "", draw::REG18, 1, 22, 0};
+  if (*str(d["caption"])) lines[n++] = {str(d["caption"]), "", draw::REG18, 1, 22, 0, false};
 
   int total = 0;
   for (int i = 0; i < n; ++i) total += lines[i].h;
@@ -1883,9 +1897,27 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
   // In the bottom right, above the footer when it's there.
   auto bottomMargin = [&](const char* c) { return hasFooter && !strcmp(c, "bottomRight") ? MARGIN_Y + 30 : MARGIN_Y; };
   int y = top ? MARGIN_Y : H - bottomMargin(corner) - total;
+  // The full weather (the information screens' own), its top at `wy`: its
+  // edge (if it has one) first, then it, as the footer.
+  auto fullWeather = [&](int wy) {
+    const bool wBlack = !strcmp(str(wx["ink"]), "black");
+    const Box wb = {MARGIN_X - 5, wy, WEATHER_W};
+    draw::seeThrough = true;
+    if (wx["outline"] | true) {
+      Halo halo(g, wBlack ? GxEPD_WHITE : GxEPD_BLACK);
+      weather(halo, wx, wb, GxEPD_BLACK);
+    }
+    weather(g, wx, wb, wBlack ? GxEPD_BLACK : GxEPD_WHITE);
+    draw::seeThrough = false;
+  };
   char buf[160];
   for (int i = 0; i < n; ++i) {
     const Line& l = lines[i];
+    if (l.weather) {
+      fullWeather(y);
+      y += l.h;
+      continue;
+    }
     draw::face(g, l.face, ink, l.size);
     draw::ascii(buf, sizeof(buf), l.text);
     const int iconW = *l.icon ? l.iconSize + 8 : 0;
@@ -1921,6 +1953,13 @@ void photoFrame(Gfx& g, JsonObjectConst d, const Ctx& ctx) {
     if (*icon) outlinedIcon(g, icons::named(icon, iconSize), x0, base - iconSize + 4, outline, ink, edge);
     if (*buf) outlinedText(g, x0 + iconW, base, buf, face, 1, outline, ink, edge);
     if (nTop) noteBottom = ny + h;
+  }
+
+  // The full weather in a left corner of its own (the lines on the right).
+  const char* wCorner = str(wx["corner"]);
+  if (!wx.isNull() && strcmp(wCorner, corner) != 0) {
+    const bool wTop = !strcmp(wCorner, "topLeft");
+    fullWeather(wTop ? MARGIN_Y - 2 : H - MARGIN_Y - weatherDrawn(wx));
   }
 
   // The footer: drawn as the layouts' is over a photo, its edge (if it has
