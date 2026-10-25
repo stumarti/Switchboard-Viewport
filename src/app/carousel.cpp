@@ -10,6 +10,37 @@ Mode modeOf(const char* s) {
   return Mode::Stay;
 }
 
+static void put(char* dst, size_t cap, const char* s) {
+  if (!cap) return;
+  strncpy(dst, s ? s : "", cap - 1);
+  dst[cap - 1] = 0;
+}
+
+void takeover(Takeover& t, const char* picked, const char* switchTo, bool pressed, char* out, size_t cap) {
+  put(out, cap, picked);
+  const char* sw = switchTo ? switchTo : "";
+  if (pressed) {
+    // Where the press put it, and that screen doesn't take over again
+    // until its rule ends.
+    if (t.active[0]) put(t.dismissed, sizeof(t.dismissed), t.active);
+    t.active[0] = t.returnTo[0] = 0;
+    return;
+  }
+  if (!sw[0]) {
+    // Nothing wants the display: back to where it was.
+    t.dismissed[0] = 0;
+    if (t.active[0]) {
+      if (t.returnTo[0]) put(out, cap, t.returnTo);
+      t.active[0] = t.returnTo[0] = 0;
+    }
+    return;
+  }
+  if (!strcmp(sw, t.dismissed)) return;
+  if (!t.active[0]) put(t.returnTo, sizeof(t.returnTo), picked);
+  put(t.active, sizeof(t.active), sw);
+  put(out, cap, sw);
+}
+
 int pick(int count, int current, Wake wake, const Plan& plan, int64_t now, int64_t lastPress, int64_t lastChange) {
   if (count <= 0) return 0;
   if (current < 0 || current >= count) current = 0;

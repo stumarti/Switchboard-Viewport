@@ -66,6 +66,7 @@ RTC_DATA_ATTR int rtcRotation = 0;        // how the screen showing was turned
 RTC_DATA_ATTR int64_t rtcLastPress = 0;
 RTC_DATA_ATTR int64_t rtcLastChange = 0;
 RTC_DATA_ATTR uint32_t rtcSleep = 0;  // the last plan, for wakes that can't ask
+RTC_DATA_ATTR carousel::Takeover rtcTakeover;  // a screen that took over by itself
 // The layout's refresh interval and quiet hours, from the last bundle: how
 // long an error or the charge screen sleeps (the panel's 30 minutes by day,
 // 60 at night), even when the server can't be asked.
@@ -425,19 +426,40 @@ void setup() {
   plan.mode = carousel::modeOf(layout["carousel"]["mode"] | "stay");
   plan.everyMin = layout["carousel"]["everyMin"] | 30;
   const int64_t now = nowEpoch();
-  const int index = carousel::pick(static_cast<int>(ids.size()), current, carouselWake(wake), plan, now, rtcLastPress, rtcLastChange);
+  int index = carousel::pick(static_cast<int>(ids.size()), current, carouselWake(wake), plan, now, rtcLastPress, rtcLastChange);
   if (buttonWake(wake)) rtcLastPress = now;
   if (index != current || strcmp(rtcScreen, ids[index].c_str()) != 0) rtcLastChange = now;
-  const String screenId = ids[index];
+  String screenId = ids[index];
 
   // ---- The screen's state ----
   // A button press, another screen, or something else on the panel: draw
   // whatever comes. Otherwise only when it changed.
   // How the display hangs (the layout's rotation): turned, it's redrawn.
   const int rotation = layout["rotation"] | 0;
-  const bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen || rotation != rtcRotation;
-  const String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
+  bool force = buttonWake(wake) || wake == hw::Wake::PowerOn || rtcPanel != Panel::Screen || screenId != rtcScreen || rotation != rtcRotation;
+  String cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
   server::Response r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), force ? nullptr : rtcEtag);
+
+  // ---- A screen that takes over by itself ----
+  // The server names it (X-Switch-To) while its rule holds: there, and back
+  // to where it was after (carousel::takeover).
+  if (r.code == 200 || r.code == 304) {
+    const char* sw = "";
+    for (const String& id : ids)
+      if (id == r.switchTo) sw = id.c_str();
+    char show[64];
+    carousel::takeover(rtcTakeover, screenId.c_str(), sw, buttonWake(wake), show, sizeof(show));
+    if (screenId != show) {
+      for (size_t i = 0; i < ids.size(); ++i)
+        if (ids[i] == show) index = static_cast<int>(i);
+      LOGF("Switching from %s to %s\n", screenId.c_str(), show);
+      screenId = ids[index];
+      rtcLastChange = now;
+      force = true;
+      cache = "/state/" + store::safeName(screenId.c_str()) + ".json";
+      r = server::get("/api/viewports/me/state?screen=" + server::urlEncode(screenId), nullptr);
+    }
+  }
   JsonDocument state;
   // The server counts its wake time from now: what the drawing takes (a
   // panel refresh is ~20 s) comes off it, so a display on the clock wakes on
