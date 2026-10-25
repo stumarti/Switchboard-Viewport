@@ -19,6 +19,9 @@ using draw::Mode;
 
 namespace screens {
 
+// (The photo frame's, below: text and icons with an edge round them.)
+void outlinedText(Gfx& g, int x, int y, const char* s, draw::Face f, uint8_t size, bool outline, uint16_t ink, uint16_t edge);
+
 namespace {
 
 // A column a section is drawn in: its left edge and width; y is where the
@@ -1149,6 +1152,95 @@ int mediaLarge(Gfx& g, JsonObjectConst d, Box b, int h) {
   return used;
 }
 
+// Now playing, cover (its style): the cover filling its column edge to edge
+// (to the panel's foot in a left-hand column, clear of the footer
+// elsewhere), and the track over its lower part in white with a black edge,
+// as a photo frame's lines: where, the title (two lines), the artist, and a
+// bar with how far into the track. `h`: the height it fills.
+// The title in at most two lines of `w` (the second cut short with "...").
+static void twoLines(Gfx& g, const char* s, int w, char* l1, char* l2, size_t cap) {
+  char all[256];
+  draw::ascii(all, sizeof(all), s);
+  l2[0] = 0;
+  if (draw::bounds(g, all).w <= w) {
+    snprintf(l1, cap, "%s", all);
+    return;
+  }
+  // The most whole words that fit on the first line; the rest on the second.
+  size_t cut = 0;
+  for (size_t i = 1; all[i]; ++i) {
+    if (all[i] != ' ') continue;
+    char head[256];
+    memcpy(head, all, i);
+    head[i] = 0;
+    if (draw::bounds(g, head).w > w) break;
+    cut = i;
+  }
+  if (!cut) {
+    draw::fit(g, l1, cap, all, w);
+    return;
+  }
+  all[cut] = 0;
+  snprintf(l1, cap, "%s", all);
+  draw::fit(g, l2, cap, all + cut + 1, w);
+}
+
+int mediaCover(Gfx& g, JsonObjectConst d, Box b, int h) {
+  JsonObjectConst m = d["players"][0];
+  if (m.isNull()) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + 20, "Nothing playing");
+    return 28;
+  }
+  const char* art = str(m["art"]);
+  if (const uint8_t* pic = *art ? icons::picture(art, b.w, h) : nullptr) {
+    draw::picture(g, pic, b.w, h, b.x, b.y);
+  } else {
+    g.fillRect(b.x, b.y, b.w, h, GxEPD_BLACK);
+    draw::icon(g, icons::named(str(m["icon"], "music"), 48), b.x + b.w / 2 - 24, b.y + h / 2 - 60, GxEPD_WHITE, Mode::Ink);
+  }
+  // The track, stacked up from the foot of the cover.
+  const int x = b.x + 12, w = b.w - 24;
+  const uint16_t ink = GxEPD_WHITE, edge = GxEPD_BLACK;
+  int y = b.y + h - 12;
+  char buf[160], line[160];
+  const int duration = m["duration"] | 0;
+  if (duration > 0) {
+    const int pos = m["position"] | 0;
+    char a[12], z[12];
+    snprintf(a, sizeof(a), "%d:%02d", pos / 60, pos % 60);
+    snprintf(z, sizeof(z), "%d:%02d", duration / 60, duration % 60);
+    outlinedText(g, x, y, a, draw::REG18, 1, true, ink, edge);
+    draw::face(g, draw::REG18, ink);
+    outlinedText(g, x + w - draw::bounds(g, z).w, y, z, draw::REG18, 1, true, ink, edge);
+    y -= 26;
+    // The bar: white on a black edge, filled as far as it's got.
+    g.fillRect(x - 1, y - 1, w + 2, 10, edge);
+    g.drawRect(x, y, w, 8, ink);
+    const int fill = pos <= 0 ? 0 : pos >= duration ? w - 2 : static_cast<int>((static_cast<long>(w - 2) * pos) / duration);
+    if (fill > 0) g.fillRect(x + 1, y + 1, fill, 6, ink);
+    y -= 12;
+  }
+  draw::face(g, draw::REG18, ink);
+  if (*str(m["artist"])) {
+    outlinedText(g, x, y, draw::fit(g, line, sizeof(line), str(m["artist"]), w), draw::REG18, 1, true, ink, edge);
+    y -= 30;
+  }
+  draw::face(g, draw::BOLD24, ink);
+  char l1[160], l2[160];
+  twoLines(g, str(m["title"]), w, l1, l2, sizeof(l1));
+  if (l2[0]) {
+    outlinedText(g, x, y, l2, draw::BOLD24, 1, true, ink, edge);
+    y -= 28;
+  }
+  outlinedText(g, x, y, l1, draw::BOLD24, 1, true, ink, edge);
+  y -= 30;
+  snprintf(buf, sizeof(buf), "%s%s%s%s", str(m["room"]), *str(m["app"]) ? " - " : "", str(m["app"]), (m["playing"] | true) ? "" : " - Paused");
+  draw::face(g, draw::REG18, ink);
+  outlinedText(g, x, y, draw::fit(g, line, sizeof(line), buf, w), draw::REG18, 1, true, ink, edge);
+  return h;
+}
+
 int media(Gfx& g, JsonObjectConst d, Box b) {
   int y = b.y;
   JsonArrayConst players = d["players"];
@@ -1450,6 +1542,15 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
     int h = want > 0 ? want - lh : photoBottom() - (b.y + lh);
     if (h < 40) h = 40;
     return lh + photo(g, d, {b.x, b.y + lh, b.w}, h) + 6;
+  }
+  // Now playing, cover: the rest of its column, edge to edge and with no
+  // heading; in a left-hand column (a sidebar's) down to the panel's foot,
+  // the footer being on the right.
+  if (!strcmp(type, "media") && !strcmp(str(d["style"]), "cover")) {
+    const bool left = b.x == 0 && b.w <= draw::PANEL_W / 2 && draw::PANEL_W > draw::PANEL_H;
+    int h = (left ? draw::PANEL_H - g_reserve : photoBottom()) - b.y;
+    if (h < 60) h = 60;
+    return mediaCover(g, d, b, h);
   }
   // Now playing, large: the rest of its column, as a photo.
   if (!strcmp(type, "media") && !strcmp(str(d["style"]), "large")) {
