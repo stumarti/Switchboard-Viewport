@@ -13,6 +13,7 @@
 //                the next refresh, then Status again)
 // =============================================================================
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 
 namespace carousel {
@@ -36,6 +37,21 @@ struct Plan {
 // The screen to show (an index into the enabled screens) for this wake.
 // `now`, `lastPress` and `lastChange` are seconds (epoch); 0 = unknown.
 int pick(int count, int current, Wake wake, const Plan& plan, int64_t now, int64_t lastPress, int64_t lastChange);
+
+// A screen that takes over by itself (the layout's switchWhen; the server
+// says which in X-Switch-To while its rule holds): the display goes there,
+// stays while it's named, and goes back to the screen it was on after. A
+// button press stays where it's put, and that screen doesn't take over
+// again until its rule has ended. Kept through deep sleep (RTC memory).
+struct Takeover {
+  char active[40] = "";     // the screen that took over
+  char returnTo[40] = "";   // the one it took over from
+  char dismissed[40] = "";  // one a press moved away from, while its rule holds
+};
+// The screen to show (into `out`): `picked` (the carousel's choice) unless a
+// takeover says otherwise. `switchTo`: the server's, "" for none (or not a
+// screen this display has); `pressed`: a button woke it.
+void takeover(Takeover& t, const char* picked, const char* switchTo, bool pressed, char* out, size_t cap);
 
 // How long to sleep: what the server asked (refreshInSec), sooner when the
 // carousel has something due (an advance, a return to the first screen),

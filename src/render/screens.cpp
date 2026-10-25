@@ -1081,6 +1081,74 @@ int people(Gfx& g, JsonObjectConst d, Box b) {
   return y + 32 - b.y;
 }
 
+// Now playing, large (its style): the one playing, its cover as wide as the
+// column (up to 290 px, leaving room for the track under it), or beside the
+// track in a column wide enough; then where it's playing, the title (two
+// lines), artist and album, and how far into the track. `h`: the rest of
+// the column.
+int mediaLarge(Gfx& g, JsonObjectConst d, Box b, int h) {
+  JsonObjectConst m = d["players"][0];
+  if (m.isNull()) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + 20, "Nothing playing");
+    return 28;
+  }
+  const int cw = b.w - 16, x0 = b.x + 8;
+  const bool wide = cw >= 520;
+  int side = wide ? (cw / 2 < 300 ? cw / 2 : 300) : (cw < 290 ? cw : 290);
+  // (Under it: where, two lines of title, artist, album and the bar: 180 px.)
+  if (!wide && side > h - 180) side = h - 180;
+  if (wide && side > h - 8) side = h - 8;
+  if (side < 60) side = 60;
+  const char* art = str(m["art"]);
+  if (const uint8_t* pic = *art ? icons::picture(art, side, side) : nullptr) {
+    draw::picture(g, pic, side, side, x0, b.y);
+  } else {
+    g.drawRect(x0, b.y, side, side, GxEPD_BLACK);
+    draw::icon(g, icons::named(str(m["icon"], "music"), 48), x0 + side / 2 - 24, b.y + side / 2 - 24, GxEPD_BLUE, Mode::Ink);
+  }
+  // The track: under the cover, or beside it (centred on it).
+  const int tx = wide ? x0 + side + 18 : x0;
+  const int tw = b.x + b.w - 8 - tx;
+  int y = wide ? b.y + side / 2 - 70 : b.y + side + 8;
+  if (y < b.y) y = b.y;
+  char buf[128];
+  snprintf(buf, sizeof(buf), "%s%s%s%s", str(m["room"]), *str(m["app"]) ? " \xC2\xB7 " : "", str(m["app"]),
+           (m["playing"] | true) ? "" : " \xC2\xB7 Paused");
+  draw::face(g, draw::REG18, GxEPD_BLACK);
+  char line[128];
+  draw::text(g, tx, y + 18, draw::fit(g, line, sizeof(line), buf, tw));
+  draw::face(g, draw::BOLD24, GxEPD_BLACK);
+  const int lines = draw::textWrapped(g, str(m["title"]), tx, y + 50, tw, 28, 2);
+  y += 50 + (lines > 1 ? 28 : 0);
+  draw::face(g, draw::REG18, GxEPD_BLACK);
+  draw::text(g, tx, y + 26, draw::fit(g, line, sizeof(line), str(m["artist"]), tw));
+  y += 26;
+  if (*str(m["album"])) {
+    draw::face(g, draw::REG18, GxEPD_BLUE);
+    draw::text(g, tx, y + 24, draw::fit(g, line, sizeof(line), str(m["album"]), tw));
+    y += 24;
+  }
+  // How far into the track: a bar, the times under it.
+  const int duration = m["duration"] | 0;
+  if (duration > 0) {
+    const int pos = m["position"] | 0;
+    const int bx = tx, by = y + 14, bw = tw, bh = 8;
+    g.drawRect(bx, by, bw, bh, GxEPD_BLACK);
+    const int fill = pos <= 0 ? 0 : pos >= duration ? bw - 2 : static_cast<int>((static_cast<long>(bw - 2) * pos) / duration);
+    if (fill > 0) g.fillRect(bx + 1, by + 1, fill, bh - 2, GxEPD_BLACK);
+    char a[12], z[12];
+    snprintf(a, sizeof(a), "%d:%02d", pos / 60, pos % 60);
+    snprintf(z, sizeof(z), "%d:%02d", duration / 60, duration % 60);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, bx, by + bh + 20, a);
+    draw::textRight(g, z, bx + bw, by + bh + 20);
+    y = by + bh + 24;
+  }
+  const int used = (wide ? (side > y - b.y ? side : y - b.y) : y - b.y) + 4;
+  return used;
+}
+
 int media(Gfx& g, JsonObjectConst d, Box b) {
   int y = b.y;
   JsonArrayConst players = d["players"];
@@ -1382,6 +1450,11 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
     int h = want > 0 ? want - lh : photoBottom() - (b.y + lh);
     if (h < 40) h = 40;
     return lh + photo(g, d, {b.x, b.y + lh, b.w}, h) + 6;
+  }
+  // Now playing, large: the rest of its column, as a photo.
+  if (!strcmp(type, "media") && !strcmp(str(d["style"]), "large")) {
+    const int lh = label(g, s, b);
+    return lh + mediaLarge(g, d, {b.x, b.y + lh, b.w}, photoBottom() - (b.y + lh)) + 6;
   }
   // The rest: an optional label, then the content.
   const int lh = label(g, s, b);

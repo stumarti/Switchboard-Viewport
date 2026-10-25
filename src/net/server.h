@@ -41,6 +41,7 @@ struct Response {
   std::vector<uint8_t> bytes;  // binary ones (asBytes)
   uint32_t refreshIn = 0;      // X-Refresh-In
   bool quiet = false;          // X-Quiet
+  String switchTo;             // X-Switch-To: a screen taking over by itself
 };
 // GET with the token and health headers; `ifNoneMatch` makes a 304
 // possible. A failed connection re-finds the server once.

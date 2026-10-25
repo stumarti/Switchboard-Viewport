@@ -121,8 +121,8 @@ Response request(const String& path, const char* method, const String* body, con
     headers(http);
     if (ifNoneMatch && *ifNoneMatch) http.addHeader("If-None-Match", ifNoneMatch);
     if (body) http.addHeader("Content-Type", "application/json");
-    const char* keep[] = {"ETag", "X-Refresh-In", "X-Quiet"};
-    http.collectHeaders(keep, 3);
+    const char* keep[] = {"ETag", "X-Refresh-In", "X-Quiet", "X-Switch-To"};
+    http.collectHeaders(keep, 4);
     r.code = body ? http.sendRequest(method, *body) : http.GET();
     LOGF("[server] %s %s -> HTTP %d\n", method, path.c_str(), r.code);
     if (r.code < 0 && attempt == 0) {
@@ -136,6 +136,7 @@ Response request(const String& path, const char* method, const String* body, con
     r.etag = http.header("ETag");
     r.refreshIn = static_cast<uint32_t>(http.header("X-Refresh-In").toInt());
     r.quiet = http.header("X-Quiet") == "1";
+    r.switchTo = http.header("X-Switch-To");
     if (r.code >= 200 && r.code < 300) {
       if (asBytes) {
         const int size = http.getSize();

@@ -121,7 +121,39 @@ static void batteryReading() {
   CHECK_EQ(battery::percent(3.825f), 65);
 }
 
+static void takingOver() {
+  // A screen whose rule holds takes over, and the one before comes back after.
+  carousel::Takeover t;
+  char show[64];
+  auto is = [&](const char* want) { CHECK_EQ(strcmp(show, want), 0); };
+  carousel::takeover(t, "home", "", false, show, sizeof(show));
+  is("home");
+  carousel::takeover(t, "home", "music", false, show, sizeof(show));
+  is("music");
+  // While it holds, it stays, whatever the carousel picked.
+  carousel::takeover(t, "home", "music", false, show, sizeof(show));
+  is("music");
+  // Another one starts: it goes there, still coming back to home after.
+  carousel::takeover(t, "music", "alert", false, show, sizeof(show));
+  is("alert");
+  carousel::takeover(t, "alert", "", false, show, sizeof(show));
+  is("home");
+  // A press while it's up: where the press put it, and it doesn't take
+  // over again until its rule has ended.
+  carousel::takeover(t, "home", "music", false, show, sizeof(show));
+  is("music");
+  carousel::takeover(t, "heating", "music", true, show, sizeof(show));
+  is("heating");
+  carousel::takeover(t, "heating", "music", false, show, sizeof(show));
+  is("heating");
+  carousel::takeover(t, "heating", "", false, show, sizeof(show));
+  is("heating");
+  carousel::takeover(t, "heating", "music", false, show, sizeof(show));
+  is("music");
+}
+
 int main() {
+  takingOver();
   buttons();
   kitchenPanel();
   homeNextPrevious();
