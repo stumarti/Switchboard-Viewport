@@ -66,11 +66,18 @@ void heading(char* out, size_t cap, JsonObjectConst s, const char* fallback) {
 const int WEATHER_W = 250;
 // How far down it draws, to the next days' highs (a photo frame stacks it
 // with its lines).
-int weatherDrawn(JsonObjectConst d) { return d["forecast"].as<JsonArrayConst>().size() ? 216 : 116; }
+// Today's high and low, when the section asks for them, add a line under the
+// temperature and push the rest down.
+const int WEATHER_TODAY_H = 26;
+int weatherDrawn(JsonObjectConst d) {
+  return (d["forecast"].as<JsonArrayConst>().size() ? 216 : 116) + (d["today"].isNull() ? 0 : WEATHER_TODAY_H);
+}
 int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
-  const int TEMP_Y = y0 + 70, DETAIL_Y = y0 + 106, RAIN_SOLAR_Y = y0 + 132, MINI_FC_Y = y0 + 152;
+  const int dy = d["today"].isNull() ? 0 : WEATHER_TODAY_H;
+  const int TEMP_Y = y0 + 70, TODAY_Y = y0 + 100;
+  const int DETAIL_Y = y0 + 106 + dy, RAIN_SOLAR_Y = y0 + 132 + dy, MINI_FC_Y = y0 + 152 + dy;
   const int w = b.w < WEATHER_W ? b.w : WEATHER_W;
   const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
@@ -94,6 +101,33 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
     const int cx = LC_X + bb.w + 15;
     const int cy = TEMP_Y - bb.h + 3;
     for (int r = 8; r >= 5; r--) g.drawCircle(cx, cy, r, tc);
+  }
+
+  // ---- Today's high and low: ▲ 14°  ▼ 6° ----
+  if (dy) {
+    JsonObjectConst td = d["today"];
+    draw::face(g, draw::BOLD18, ink);
+    for (int i = 0; i < 2; i++) {
+      // In the detail row's first two columns.
+      const int x = LC_X + 5 + i * CELL;
+      const int by = TODAY_Y;
+      // The arrow, 13 wide and 11 tall: up for the high, down for the low.
+      for (int k = 0; k <= 10; k++) {
+        const int in = k * 6 / 10;
+        g.drawFastHLine(x + in, i == 0 ? by - 2 - k : by - 12 + k, 13 - 2 * in, ink);
+      }
+      JsonVariantConst v = td[i == 0 ? "high" : "low"];
+      char buf[8];
+      if (v.isNull()) snprintf(buf, sizeof(buf), "--");
+      else snprintf(buf, sizeof(buf), "%d", static_cast<int>(roundf(v.as<float>())));
+      draw::text(g, x + 18, by, buf);
+      // A small degree ring (the font has none).
+      if (!v.isNull()) {
+        const draw::Bounds tb = draw::bounds(g, buf, x + 18, by);
+        g.drawCircle(x + 18 + tb.w + 5, by - tb.h + 3, 3, ink);
+        g.drawCircle(x + 18 + tb.w + 5, by - tb.h + 3, 2, ink);
+      }
+    }
   }
 
   // ---- Weather icon ----
