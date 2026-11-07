@@ -65,12 +65,34 @@ void heading(char* out, size_t cap, JsonObjectConst s, const char* fallback) {
 // lines' colour: the temperature and the rain keep theirs).
 const int WEATHER_W = 250;
 // How far down it draws, to the next days' highs (a photo frame stacks it
-// with its lines).
-int weatherDrawn(JsonObjectConst d) { return d["forecast"].as<JsonArrayConst>().size() ? 216 : 116; }
+// with its lines). Today's high and low (`highLow`, when the section asks for
+// them) add a line under the temperature and push the rest down.
+const int WEATHER_HIGHLOW_H = 24;
+int weatherDrawn(JsonObjectConst d) {
+  return (d["forecast"].as<JsonArrayConst>().size() ? 216 : 116) + (d["highLow"].isNull() ? 0 : WEATHER_HIGHLOW_H);
+}
+// A temperature, rounded, with a small degree ring (the font has none); "--"
+// for none. Drawn at x on baseline y, or only measured; returns its width.
+int smallDeg(Gfx& g, JsonVariantConst v, int x, int y, uint16_t ink, bool drawIt = true) {
+  char buf[8];
+  if (v.isNull()) snprintf(buf, sizeof(buf), "--");
+  else snprintf(buf, sizeof(buf), "%d", static_cast<int>(roundf(v.as<float>())));
+  const draw::Bounds tb = draw::bounds(g, buf, x, y);
+  if (drawIt) draw::text(g, x, y, buf);
+  if (v.isNull()) return tb.w;
+  if (drawIt) {
+    g.drawCircle(x + tb.w + 5, y - tb.h + 3, 3, ink);
+    g.drawCircle(x + tb.w + 5, y - tb.h + 3, 2, ink);
+  }
+  return tb.w + 9;
+}
 int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
-  const int TEMP_Y = y0 + 70, DETAIL_Y = y0 + 106, RAIN_SOLAR_Y = y0 + 132, MINI_FC_Y = y0 + 152;
+  JsonObjectConst hl = d["highLow"];
+  const int dy = hl.isNull() ? 0 : WEATHER_HIGHLOW_H;
+  const int TEMP_Y = y0 + 70, HIGHLOW_Y = y0 + 98;
+  const int DETAIL_Y = y0 + 106 + dy, RAIN_SOLAR_Y = y0 + 132 + dy, MINI_FC_Y = y0 + 152 + dy;
   const int w = b.w < WEATHER_W ? b.w : WEATHER_W;
   const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
@@ -94,6 +116,18 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
     const int cx = LC_X + bb.w + 15;
     const int cy = TEMP_Y - bb.h + 3;
     for (int r = 8; r >= 5; r--) g.drawCircle(cx, cy, r, tc);
+  }
+
+  // ---- Today's high and low: "High 14°  Low 6°" ----
+  if (dy) {
+    draw::face(g, draw::REG18, ink);
+    int x = LC_X + 5;
+    draw::text(g, x, HIGHLOW_Y, "High ");
+    x += draw::bounds(g, "High ").w + 4;
+    x += smallDeg(g, hl["high"], x, HIGHLOW_Y, ink) + 16;
+    draw::text(g, x, HIGHLOW_Y, "Low ");
+    x += draw::bounds(g, "Low ").w + 4;
+    smallDeg(g, hl["low"], x, HIGHLOW_Y, ink);
   }
 
   // ---- Weather icon ----
@@ -156,11 +190,20 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
       char key[40];
       icons::weatherKey(key, sizeof(key), str(f["condition"]), true);
       draw::icon(g, icons::slot(key), cx + (FCELL_W - MINI_ICON_S) / 2, fy + 14, ink);
-      char hi[16];
-      // "18°": the font has no degree sign, so it prints as "18", as it did.
-      if (f["high"].isNull()) snprintf(hi, sizeof(hi), "--\xC2\xB0");
-      else snprintf(hi, sizeof(hi), "%d\xC2\xB0", static_cast<int>(roundf(f["high"].as<float>())));
-      draw::textCentered(g, hi, cx, FCELL_W, fy + 14 + MINI_ICON_S + 12);
+      const int ty = fy + 14 + MINI_ICON_S + 12;
+      if (dy && !f["low"].isNull()) {
+        // With the high and low: "18° 9°", centred.
+        draw::face(g, draw::REG18, ink);
+        const int wd = smallDeg(g, f["high"], 0, ty, ink, false) + 8 + smallDeg(g, f["low"], 0, ty, ink, false);
+        const int x = cx + (FCELL_W - wd) / 2;
+        smallDeg(g, f["low"], x + smallDeg(g, f["high"], x, ty, ink) + 8, ty, ink);
+      } else {
+        char hi[16];
+        // "18°": the font has no degree sign, so it prints as "18", as it did.
+        if (f["high"].isNull()) snprintf(hi, sizeof(hi), "--\xC2\xB0");
+        else snprintf(hi, sizeof(hi), "%d\xC2\xB0", static_cast<int>(roundf(f["high"].as<float>())));
+        draw::textCentered(g, hi, cx, FCELL_W, ty);
+      }
       ++i;
     }
   }
