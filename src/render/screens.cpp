@@ -68,7 +68,7 @@ const int WEATHER_W = 250;
 // with its lines).
 // With the highs and lows, today's line under the temperature moves the
 // rest down by WEATHER_HL (still inside the 268).
-const int WEATHER_HL = 24;
+const int WEATHER_HL = 20;
 int weatherDrawn(JsonObjectConst d) {
   return (d["forecast"].as<JsonArrayConst>().size() ? 216 : 116) + (d["highLow"].isNull() ? 0 : WEATHER_HL);
 }
@@ -92,12 +92,21 @@ int smallTemp(Gfx& g, int x, int y, JsonVariantConst v, uint16_t c, bool draw = 
   return w;
 }
 
+// A small solid arrow, up or down, 9 wide and 5 tall, centred on the
+// digits of an 18 px figure whose baseline is `y`.
+void arrow(Gfx& g, int x, int y, bool up, uint16_t c) {
+  for (int r = 0; r < 5; r++) {
+    const int half = up ? r : 4 - r;
+    g.drawFastHLine(x + 4 - half, y - 10 + r, half * 2 + 1, c);
+  }
+}
+
 int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
   JsonObjectConst hl = d["highLow"];
   const int HL = hl.isNull() ? 0 : WEATHER_HL;
-  const int TEMP_Y = y0 + 70, HL_Y = y0 + 98, DETAIL_Y = y0 + 106 + HL, RAIN_SOLAR_Y = y0 + 132 + HL, MINI_FC_Y = y0 + 152 + HL;
+  const int TEMP_Y = y0 + 70, HL_Y = y0 + 96, DETAIL_Y = y0 + 106 + HL, RAIN_SOLAR_Y = y0 + 132 + HL, MINI_FC_Y = y0 + 152 + HL;
   const int w = b.w < WEATHER_W ? b.w : WEATHER_W;
   const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
@@ -130,19 +139,15 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
     draw::icon(g, icons::slot(key), b.x + 152, y0 + 2, ink, Mode::Opaque);
   }
 
-  // ---- Today's high and low ----
+  // ---- Today's high and low: "▲15° ▼9°" ----
   if (!hl.isNull()) {
     int x = LC_X + 5;
-    draw::face(g, draw::REG18, ink);
-    draw::text(g, x, HL_Y, "High");
-    x += draw::bounds(g, "High").w + 6;
     draw::face(g, draw::BOLD18, ink);
-    x += smallTemp(g, x, HL_Y, hl["high"], ink) + 16;
+    arrow(g, x, HL_Y, true, ink);
+    x += smallTemp(g, x + 12, HL_Y, hl["high"], ink) + 12 + 12;
     draw::face(g, draw::REG18, ink);
-    draw::text(g, x, HL_Y, "Low");
-    x += draw::bounds(g, "Low").w + 6;
-    draw::face(g, draw::BOLD18, ink);
-    smallTemp(g, x, HL_Y, hl["low"], ink);
+    arrow(g, x, HL_Y, false, ink);
+    smallTemp(g, x + 12, HL_Y, hl["low"], ink);
   }
 
   // ---- Detail row: humidity · wind · UV ----
