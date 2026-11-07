@@ -92,13 +92,25 @@ int smallTemp(Gfx& g, int x, int y, JsonVariantConst v, uint16_t c, bool draw = 
   return w;
 }
 
-// A small solid arrow, up or down, 9 wide and 5 tall, centred on the
-// digits of an 18 px figure whose baseline is `y`.
-void arrow(Gfx& g, int x, int y, bool up, uint16_t c) {
-  for (int r = 0; r < 5; r++) {
-    const int half = up ? r : 4 - r;
-    g.drawFastHLine(x + 4 - half, y - 10 + r, half * 2 + 1, c);
+// A temperature's colour, as the big one's: blue below 0, red above 20.
+uint16_t tempColor(JsonVariantConst v, uint16_t ink) {
+  if (v.isNull()) return ink;
+  const int t = static_cast<int>(roundf(v.as<float>()));
+  return t < 0 ? GxEPD_BLUE : t > 20 ? GxEPD_RED : ink;
+}
+
+// "18° / 9°" (gap 0: "18°/9°"), each in its colour, the slash in `ink`,
+// at the current face. Its width, or only that when !draw.
+int highSlashLow(Gfx& g, int x, int y, JsonVariantConst hi, JsonVariantConst lo, uint16_t ink, int gap, bool draw = true) {
+  const int sw = draw::bounds(g, "/").w;
+  int w = smallTemp(g, x, y, hi, tempColor(hi, ink), draw) + gap;
+  if (draw) {
+    g.setTextColor(ink);
+    draw::text(g, x + w, y, "/");
   }
+  w += sw + gap + 2;
+  w += smallTemp(g, x + w, y, lo, tempColor(lo, ink), draw);
+  return w;
 }
 
 int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
@@ -139,15 +151,10 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
     draw::icon(g, icons::slot(key), b.x + 152, y0 + 2, ink, Mode::Opaque);
   }
 
-  // ---- Today's high and low: "▲15° ▼9°" ----
+  // ---- Today's high and low: "15° / 9°" ----
   if (!hl.isNull()) {
-    int x = LC_X + 5;
     draw::face(g, draw::BOLD18, ink);
-    arrow(g, x, HL_Y, true, ink);
-    x += smallTemp(g, x + 12, HL_Y, hl["high"], ink) + 12 + 12;
-    draw::face(g, draw::REG18, ink);
-    arrow(g, x, HL_Y, false, ink);
-    smallTemp(g, x + 12, HL_Y, hl["low"], ink);
+    highSlashLow(g, LC_X + 5, HL_Y, hl["high"], hl["low"], ink, 6);
   }
 
   // ---- Detail row: humidity · wind · UV ----
@@ -204,17 +211,10 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
       icons::weatherKey(key, sizeof(key), str(f["condition"]), true);
       draw::icon(g, icons::slot(key), cx + (FCELL_W - MINI_ICON_S) / 2, fy + 14, ink);
       if (!hl.isNull() && !f["low"].isNull()) {
-        // The high in bold, the low beside it in regular, both centred.
+        // "18°/9°", centred.
         const int ty = fy + 14 + MINI_ICON_S + 12;
-        const int GAP = 8;
-        const int hw = smallTemp(g, 0, 0, f["high"], ink, false);
-        draw::face(g, draw::REG18, ink);
-        const int lw = smallTemp(g, 0, 0, f["low"], ink, false);
-        int x = cx + (FCELL_W - hw - GAP - lw) / 2;
-        draw::face(g, draw::BOLD18, ink);
-        x += smallTemp(g, x, ty, f["high"], ink) + GAP;
-        draw::face(g, draw::REG18, ink);
-        smallTemp(g, x, ty, f["low"], ink);
+        const int w = highSlashLow(g, 0, 0, f["high"], f["low"], ink, 1, false);
+        highSlashLow(g, cx + (FCELL_W - w) / 2, ty, f["high"], f["low"], ink, 1);
       } else {
         char hi[16];
         // "18°": the font has no degree sign, so it prints as "18", as it did.
