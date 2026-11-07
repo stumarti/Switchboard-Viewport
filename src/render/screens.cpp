@@ -66,11 +66,38 @@ void heading(char* out, size_t cap, JsonObjectConst s, const char* fallback) {
 const int WEATHER_W = 250;
 // How far down it draws, to the next days' highs (a photo frame stacks it
 // with its lines).
-int weatherDrawn(JsonObjectConst d) { return d["forecast"].as<JsonArrayConst>().size() ? 216 : 116; }
+// With the highs and lows, today's line under the temperature moves the
+// rest down by WEATHER_HL (still inside the 268).
+const int WEATHER_HL = 24;
+int weatherDrawn(JsonObjectConst d) {
+  return (d["forecast"].as<JsonArrayConst>().size() ? 216 : 116) + (d["highLow"].isNull() ? 0 : WEATHER_HL);
+}
+// "18" and a small degree ring after it (the font has no degree sign), at
+// the current face. Its width, or only that when !draw.
+int smallTemp(Gfx& g, int x, int y, JsonVariantConst v, uint16_t c, bool draw = true) {
+  char buf[12];
+  const bool none = v.isNull();
+  if (none) snprintf(buf, sizeof(buf), "--");
+  else snprintf(buf, sizeof(buf), "%d", static_cast<int>(roundf(v.as<float>())));
+  const draw::Bounds bb = draw::bounds(g, buf);
+  const int w = bb.w + (none ? 0 : 9);
+  if (!draw) return w;
+  g.setTextColor(c);
+  draw::text(g, x, y, buf);
+  if (!none) {
+    const int cx = x + bb.w + 5, cy = y - 11;
+    g.drawCircle(cx, cy, 3, c);
+    g.drawCircle(cx, cy, 2, c);
+  }
+  return w;
+}
+
 int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
   const int LC_X = b.x + 5;
   const int y0 = b.y;
-  const int TEMP_Y = y0 + 70, DETAIL_Y = y0 + 106, RAIN_SOLAR_Y = y0 + 132, MINI_FC_Y = y0 + 152;
+  JsonObjectConst hl = d["highLow"];
+  const int HL = hl.isNull() ? 0 : WEATHER_HL;
+  const int TEMP_Y = y0 + 70, HL_Y = y0 + 98, DETAIL_Y = y0 + 106 + HL, RAIN_SOLAR_Y = y0 + 132 + HL, MINI_FC_Y = y0 + 152 + HL;
   const int w = b.w < WEATHER_W ? b.w : WEATHER_W;
   const int CELL = (w - 10) / 3;  // the panel's (LC_W + LC_X) / 3 = 80
   const int MINI_ICON_S = 32;
@@ -101,6 +128,21 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
     char key[40];
     icons::weatherKey(key, sizeof(key), str(d["icon"], str(d["condition"])), false);
     draw::icon(g, icons::slot(key), b.x + 152, y0 + 2, ink, Mode::Opaque);
+  }
+
+  // ---- Today's high and low ----
+  if (!hl.isNull()) {
+    int x = LC_X + 5;
+    draw::face(g, draw::REG18, ink);
+    draw::text(g, x, HL_Y, "High");
+    x += draw::bounds(g, "High").w + 6;
+    draw::face(g, draw::BOLD18, ink);
+    x += smallTemp(g, x, HL_Y, hl["high"], ink) + 16;
+    draw::face(g, draw::REG18, ink);
+    draw::text(g, x, HL_Y, "Low");
+    x += draw::bounds(g, "Low").w + 6;
+    draw::face(g, draw::BOLD18, ink);
+    smallTemp(g, x, HL_Y, hl["low"], ink);
   }
 
   // ---- Detail row: humidity · wind · UV ----
@@ -156,11 +198,25 @@ int weather(Gfx& g, JsonObjectConst d, Box b, uint16_t ink = GxEPD_BLACK) {
       char key[40];
       icons::weatherKey(key, sizeof(key), str(f["condition"]), true);
       draw::icon(g, icons::slot(key), cx + (FCELL_W - MINI_ICON_S) / 2, fy + 14, ink);
-      char hi[16];
-      // "18°": the font has no degree sign, so it prints as "18", as it did.
-      if (f["high"].isNull()) snprintf(hi, sizeof(hi), "--\xC2\xB0");
-      else snprintf(hi, sizeof(hi), "%d\xC2\xB0", static_cast<int>(roundf(f["high"].as<float>())));
-      draw::textCentered(g, hi, cx, FCELL_W, fy + 14 + MINI_ICON_S + 12);
+      if (!hl.isNull() && !f["low"].isNull()) {
+        // The high in bold, the low beside it in regular, both centred.
+        const int ty = fy + 14 + MINI_ICON_S + 12;
+        const int GAP = 8;
+        const int hw = smallTemp(g, 0, 0, f["high"], ink, false);
+        draw::face(g, draw::REG18, ink);
+        const int lw = smallTemp(g, 0, 0, f["low"], ink, false);
+        int x = cx + (FCELL_W - hw - GAP - lw) / 2;
+        draw::face(g, draw::BOLD18, ink);
+        x += smallTemp(g, x, ty, f["high"], ink) + GAP;
+        draw::face(g, draw::REG18, ink);
+        smallTemp(g, x, ty, f["low"], ink);
+      } else {
+        char hi[16];
+        // "18°": the font has no degree sign, so it prints as "18", as it did.
+        if (f["high"].isNull()) snprintf(hi, sizeof(hi), "--\xC2\xB0");
+        else snprintf(hi, sizeof(hi), "%d\xC2\xB0", static_cast<int>(roundf(f["high"].as<float>())));
+        draw::textCentered(g, hi, cx, FCELL_W, fy + 14 + MINI_ICON_S + 12);
+      }
       ++i;
     }
   }
