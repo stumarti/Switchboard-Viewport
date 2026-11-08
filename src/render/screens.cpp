@@ -755,6 +755,90 @@ int photo(Gfx& g, JsonObjectConst d, Box b, int h) {
   return h;
 }
 
+// A "now" item cut to its column: the same colour bar, icon and two lines,
+// each line shortened with "..." rather than run past the column's edge (a
+// sidebar's). `c2`: the second line's colour.
+void listItem(Gfx& g, Box b, int top, const Icon& ic, uint16_t c, const char* line1, const char* line2, uint16_t c2 = GxEPD_BLACK) {
+  const int TEXTX = b.x + 4 + 24 + 8;
+  const int w = b.x + b.w - 4 - TEXTX;
+  char buf[96];
+  g.fillRect(b.x, top, RC_BAR_W, ITEM_H, c);
+  draw::icon(g, ic, b.x + 6, top + (ITEM_H - 24) / 2, c, Mode::Opaque);
+  draw::face(g, draw::BOLD24, c);
+  draw::text(g, TEXTX, top + 17, draw::fit(g, buf, sizeof(buf), line1, w));
+  if (line2 && *line2) {
+    draw::face(g, draw::REG18, c2);
+    draw::text(g, TEXTX, top + 33, draw::fit(g, buf, sizeof(buf), line2, w));
+  }
+}
+
+// A list section's heading, as NOW and TODAY have theirs: its title in
+// capitals, else the section's own word. Returns where its items start.
+int listHeading(Gfx& g, JsonObjectConst s, Box b, const char* word) {
+  char h[48];
+  heading(h, sizeof(h), s, word);
+  draw::face(g, draw::BOLD18, GxEPD_BLACK);
+  draw::text(g, b.x + 8, b.y + 16, h);
+  return b.y + 24;
+}
+
+// "BINS", as NOW: each bin's next collection as an item in the bin's
+// colour, its name and when ("Tomorrow" in red the day before and on the
+// day); "Put out tonight" in red above them.
+int bins(Gfx& g, JsonObjectConst s, JsonObjectConst d, Box b) {
+  int y = listHeading(g, s, b, "Bins");
+  if (*str(d["note"])) {
+    draw::face(g, draw::BOLD18, GxEPD_RED);
+    y += 22 * draw::textWrapped(g, str(d["note"]), b.x + 8, y + 14, b.w - 16, 22, 2) + 2;
+  }
+  JsonArrayConst lines = d["lines"];
+  if (lines.size() == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 10, y + 10, str(d["empty"], "No collections"));
+    return y + 20 - b.y;
+  }
+  for (JsonObjectConst it : lines) {
+    if (y + ITEM_H > draw::PANEL_H) break;
+    const bool soon = it["soon"] | false;
+    listItem(g, b, y, icons::named(str(it["icon"], "trash-can-outline"), 24), col(it["color"]), str(it["name"]), str(it["when"]), soon ? GxEPD_RED : GxEPD_BLACK);
+    y += ITEM_H + ITEM_GAP;
+  }
+  return y + 10 - b.y;
+}
+
+// "LOW BATTERIES", as NOW: each battery as an item, red at or below the
+// critical level, its name and its charge (or Offline); "and 2 more" after.
+int batteries(Gfx& g, JsonObjectConst s, JsonObjectConst d, Box b) {
+  int y = listHeading(g, s, b, "Low batteries");
+  JsonArrayConst items = d["items"];
+  if (items.size() == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 10, y + 10, str(d["empty"], "All batteries fine"));
+    return y + 20 - b.y;
+  }
+  // Those that don't fit count with the server's "more"; a row is drawn
+  // only with room under it for that line when anything comes after it.
+  const int n = static_cast<int>(items.size());
+  const int extra = d["more"] | 0;
+  int shown = 0;
+  for (JsonObjectConst it : items) {
+    const bool after = shown < n - 1 || extra > 0;
+    if (y + ITEM_H + (after ? 20 : 0) > draw::PANEL_H - g_reserve) break;
+    listItem(g, b, y, icons::named(str(it["icon"], "battery-low"), 24), col(it["color"]), str(it["name"]), str(it["value"]));
+    y += ITEM_H + ITEM_GAP;
+    ++shown;
+  }
+  const int more = extra + n - shown;
+  if (more > 0) {
+    char buf[24];
+    snprintf(buf, sizeof(buf), "and %d more", more);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 36, y + 12, buf);
+    y += 20;
+  }
+  return y + 10 - b.y;
+}
+
 int label(Gfx& g, JsonObjectConst s, Box b) {
   const char* t = str(s["title"]);
   if (!*t) return 0;
@@ -1508,36 +1592,6 @@ int message(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y + 6;
 }
 
-// The next bin collections: each bin's icon in its colour, its name, and
-// when (red for today and tomorrow); "Put out tonight" above them.
-int bins(Gfx& g, JsonObjectConst d, Box b) {
-  int y = b.y;
-  char buf[64];
-  if (*str(d["note"])) {
-    draw::face(g, draw::BOLD18, GxEPD_RED);
-    y += 22 * draw::textWrapped(g, str(d["note"]), b.x + 8, y + 16, b.w - 16, 22, 2) + 4;
-  }
-  JsonArrayConst lines = d["lines"];
-  if (lines.size() == 0) {
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 8, y + 20, str(d["empty"], "No collections"));
-    return y - b.y + 28;
-  }
-  for (JsonObjectConst it : lines) {
-    draw::icon(g, icons::named(str(it["icon"], "trash-can-outline"), 24), b.x + 8, y + 6, col(it["color"]), Mode::Ink);
-    const bool soon = it["soon"] | false;
-    draw::face(g, draw::BOLD18, soon ? GxEPD_RED : GxEPD_BLACK);
-    const char* when = str(it["when"]);
-    const int ww = draw::bounds(g, when).w;
-    draw::textRight(g, when, b.x + b.w - 8, y + 24);
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
-    draw::text(g, b.x + 40, y + 24, draw::fit(g, buf, sizeof(buf), str(it["name"]), b.w - 56 - ww));
-    y += 36;
-    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
-  }
-  return y - b.y;
-}
-
 // Air quality: a dot in each reading's colour (green good, yellow fair, red
 // poor), its name, its value, and the level's word.
 int airQuality(Gfx& g, JsonObjectConst d, Box b) {
@@ -1573,41 +1627,6 @@ int airQuality(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y + 2;
 }
 
-// Low batteries: each one's battery icon in its colour (red when critical),
-// its name, and its charge or "Offline", lowest first; "and 2 more" under
-// them when there are more than fit the count.
-int batteries(Gfx& g, JsonObjectConst d, Box b) {
-  JsonArrayConst items = d["items"];
-  if (items.size() == 0) {
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 8, b.y + 20, str(d["empty"], "All batteries fine"));
-    return 28;
-  }
-  int y = b.y;
-  char buf[64];
-  for (JsonObjectConst it : items) {
-    if (y + 32 > draw::PANEL_H - 24) break;
-    const uint16_t c = col(it["color"]);
-    draw::icon(g, icons::named(str(it["icon"], "battery-low"), 24), b.x + 6, y + 4, c, Mode::Ink);
-    draw::face(g, draw::BOLD18, c);
-    const char* v = str(it["value"]);
-    const int vw = draw::bounds(g, v).w;
-    draw::textRight(g, v, b.x + b.w - 8, y + 22);
-    draw::face(g, draw::BOLD18, GxEPD_BLACK);
-    draw::text(g, b.x + 36, y + 22, draw::fit(g, buf, sizeof(buf), str(it["name"]), b.w - 52 - vw));
-    y += 32;
-    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
-  }
-  const int more = d["more"] | 0;
-  if (more > 0) {
-    snprintf(buf, sizeof(buf), "and %d more", more);
-    draw::face(g, draw::REG18, GxEPD_BLACK);
-    draw::text(g, b.x + 36, y + 18, buf);
-    y += 24;
-  }
-  return y - b.y;
-}
-
 // =============================================================================
 // A section: its type's drawing, in its box; returns the height it used.
 // =============================================================================
@@ -1622,6 +1641,8 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   if (!strcmp(type, "statusIcons")) return statusIcons(g, d, b);
   if (!strcmp(type, "now")) return now(g, s, d, b);
   if (!strcmp(type, "calendar")) return calendar(g, s, d, b);
+  if (!strcmp(type, "bins")) return bins(g, s, d, b);
+  if (!strcmp(type, "batteries")) return batteries(g, s, d, b);
   if (!strcmp(type, "heating")) return heating(g, d, b);
   if (!strcmp(type, "alarm")) return alarm(g, d, b, siblings);
   if (!strcmp(type, "openings")) return openings(g, s, d, b);
@@ -1669,9 +1690,7 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   else if (!strcmp(type, "announcements")) h = announcements(g, d, c);
   else if (!strcmp(type, "guestWifi")) h = guestWifi(g, d, c);
   else if (!strcmp(type, "message")) h = message(g, d, c);
-  else if (!strcmp(type, "bins")) h = bins(g, d, c);
   else if (!strcmp(type, "airQuality")) h = airQuality(g, d, c);
-  else if (!strcmp(type, "batteries")) h = batteries(g, d, c);
   return lh + h + 6;
 }
 
