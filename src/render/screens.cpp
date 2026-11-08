@@ -1573,6 +1573,41 @@ int airQuality(Gfx& g, JsonObjectConst d, Box b) {
   return y - b.y + 2;
 }
 
+// Low batteries: each one's battery icon in its colour (red when critical),
+// its name, and its charge or "Offline", lowest first; "and 2 more" under
+// them when there are more than fit the count.
+int batteries(Gfx& g, JsonObjectConst d, Box b) {
+  JsonArrayConst items = d["items"];
+  if (items.size() == 0) {
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 8, b.y + 20, str(d["empty"], "All batteries fine"));
+    return 28;
+  }
+  int y = b.y;
+  char buf[64];
+  for (JsonObjectConst it : items) {
+    if (y + 32 > draw::PANEL_H - 24) break;
+    const uint16_t c = col(it["color"]);
+    draw::icon(g, icons::named(str(it["icon"], "battery-low"), 24), b.x + 6, y + 4, c, Mode::Ink);
+    draw::face(g, draw::BOLD18, c);
+    const char* v = str(it["value"]);
+    const int vw = draw::bounds(g, v).w;
+    draw::textRight(g, v, b.x + b.w - 8, y + 22);
+    draw::face(g, draw::BOLD18, GxEPD_BLACK);
+    draw::text(g, b.x + 36, y + 22, draw::fit(g, buf, sizeof(buf), str(it["name"]), b.w - 52 - vw));
+    y += 32;
+    draw::dottedH(g, b.x + 8, b.x + b.w - 8, y - 3);
+  }
+  const int more = d["more"] | 0;
+  if (more > 0) {
+    snprintf(buf, sizeof(buf), "and %d more", more);
+    draw::face(g, draw::REG18, GxEPD_BLACK);
+    draw::text(g, b.x + 36, y + 18, buf);
+    y += 24;
+  }
+  return y - b.y;
+}
+
 // =============================================================================
 // A section: its type's drawing, in its box; returns the height it used.
 // =============================================================================
@@ -1636,6 +1671,7 @@ int section(Gfx& g, JsonObjectConst s, Box b, JsonArrayConst siblings) {
   else if (!strcmp(type, "message")) h = message(g, d, c);
   else if (!strcmp(type, "bins")) h = bins(g, d, c);
   else if (!strcmp(type, "airQuality")) h = airQuality(g, d, c);
+  else if (!strcmp(type, "batteries")) h = batteries(g, d, c);
   return lh + h + 6;
 }
 
